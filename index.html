@@ -49,12 +49,14 @@
         padding: 20px; /* 内側の余白 */
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* 軽い影をつける */
         transition: transform 0.2s; /* ホバー時のアニメーション用 */
+        cursor: pointer; /* クリック可能であることを示すカーソル */
       }
 
       /* ホバー時に少し浮き上がる演出 */
       .store-item:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #fafafa; /* ホバー時の背景色変更 */
       }
 
       /* 店舗名のスタイル (.store-name) */
@@ -144,6 +146,56 @@
         color: #666;
         margin-bottom: 5px;
       }
+
+      /* --- 商品メニュー表示機能用の追加スタイル --- */
+
+      /* 商品リストのコンテナ */
+      #item-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      /* 商品カードのスタイル */
+      .item-card {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between; /* 商品名と価格を左右に配置 */
+        align-items: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+
+      .item-name {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .item-price {
+        font-size: 1.1em;
+        color: #e74c3c;
+        font-weight: bold;
+      }
+
+      /* 「店舗一覧に戻る」ボタンのスタイル */
+      #back-to-stores-button {
+        background-color: #ecf0f1;
+        color: #2c3e50;
+        border: 1px solid #bdc3c7;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        font-size: 0.9em;
+        transition: background-color 0.2s;
+      }
+
+      #back-to-stores-button:hover {
+        background-color: #bdc3c7;
+      }
     </style>
   </head>
   <body>
@@ -166,13 +218,28 @@
       <!-- ページ全体の大見出し -->
       <h1>南陵祭 モバイルオーダー</h1>
 
-      <!-- 店舗一覧セクションの見出し -->
-      <h2>出店一覧</h2>
+      <!-- ▼▼▼ 店舗一覧表示エリア ▼▼▼ -->
+      <div id="store-list-container">
+        <!-- 店舗一覧セクションの見出し -->
+        <h2>出店一覧</h2>
 
-      <!-- 
-          JavaScriptが動的に店舗リストを挿入するための空のコンテナ要素 
-        -->
-      <div id="store-list"></div>
+        <!-- 
+              JavaScriptが動的に店舗リストを挿入するための空のコンテナ要素 
+            -->
+        <div id="store-list"></div>
+      </div>
+
+      <!-- ▼▼▼ 商品メニュー表示エリア（初期状態は非表示） ▼▼▼ -->
+      <div id="item-list-container" style="display: none">
+        <!-- 店舗一覧に戻るボタン -->
+        <button id="back-to-stores-button">← 店舗一覧に戻る</button>
+
+        <!-- 選択された店舗名を表示する見出し -->
+        <h2 id="selected-store-name"></h2>
+
+        <!-- 商品リストを動的に挿入するための空のコンテナ -->
+        <div id="item-list"></div>
+      </div>
     </div>
 
     <!-- 
@@ -210,7 +277,22 @@
       const loginButton = document.getElementById("login-button");
       const logoutButton = document.getElementById("logout-button");
       const userInfoElement = document.getElementById("user-info");
+
+      // 店舗一覧関連のDOM要素
+      const storeListContainer = document.getElementById(
+        "store-list-container"
+      );
       const storeListElement = document.getElementById("store-list");
+
+      // 商品一覧関連のDOM要素（新規追加）
+      const itemListContainer = document.getElementById("item-list-container");
+      const itemListElement = document.getElementById("item-list");
+      const selectedStoreNameElement = document.getElementById(
+        "selected-store-name"
+      );
+      const backToStoresButton = document.getElementById(
+        "back-to-stores-button"
+      );
 
       // ログインボタンのクリックイベント
       loginButton.addEventListener("click", () => {
@@ -226,7 +308,6 @@
         auth
           .signOut()
           .then(() => {
-            // ログアウト成功時の処理（画面はonAuthStateChangedで切り替わる）
             console.log("Signed out");
           })
           .catch((error) => {
@@ -234,14 +315,19 @@
           });
       });
 
+      // 「店舗一覧に戻る」ボタンのクリックイベント（新規追加）
+      backToStoresButton.addEventListener("click", () => {
+        // 商品一覧を隠して、店舗一覧を表示
+        itemListContainer.style.display = "none";
+        storeListContainer.style.display = "block";
+      });
+
       // 認証状態の監視
-      // ページ読み込み時やログイン/ログアウト時に自動的に呼び出されます
       auth.onAuthStateChanged((user) => {
         if (user) {
           // --- ログイン状態 ---
           console.log("User is signed in:", user.email);
 
-          // UIの切り替え
           loginContainer.style.display = "none";
           mainContent.style.display = "block";
           userInfoElement.textContent = `ログイン中: ${
@@ -254,25 +340,22 @@
           // --- ログアウト状態 ---
           console.log("User is signed out");
 
-          // UIの切り替え
           loginContainer.style.display = "block";
           mainContent.style.display = "none";
-          storeListElement.innerHTML = ""; // リストをクリア
+          storeListElement.innerHTML = "";
+          itemListElement.innerHTML = ""; // 商品リストもクリア
         }
       });
 
       // 店舗データを取得して表示する関数
       function fetchStoreData() {
-        // 最初に「読み込み中...」を表示
         storeListElement.innerHTML =
           '<p class="loading-message">読み込み中...</p>';
 
-        // Firestoreから "stores" コレクションの全ドキュメントを取得
         db.collection("stores")
           .get()
           .then((querySnapshot) => {
-            // データ取得成功時の処理
-            storeListElement.innerHTML = ""; // 「読み込み中」を消去
+            storeListElement.innerHTML = "";
 
             if (querySnapshot.empty) {
               storeListElement.innerHTML =
@@ -286,9 +369,12 @@
               const description = data.description
                 ? data.description
                 : "説明はありません";
+              const storeId = doc.id; // ドキュメントIDを取得
 
+              // HTML文字列を動的に生成
+              // data-store-id属性を追加して、クリック時にIDを取得できるようにする
               const storeHtml = `
-                            <div class="store-item">
+                            <div class="store-item" data-store-id="${storeId}" data-store-name="${teamName}">
                                 <h3 class="store-name">${teamName}</h3>
                                 <p class="store-description">${description}</p>
                             </div>
@@ -300,6 +386,75 @@
             console.error("Error getting documents: ", error);
             storeListElement.innerHTML =
               '<p class="error-message">データの取得に失敗しました。<br>権限エラーの可能性があります。</p>';
+          });
+      }
+
+      // 店舗リストのクリックイベント（イベント委任）
+      // 親要素であるstoreListElementにリスナーを設定し、子要素のクリックを検知する
+      storeListElement.addEventListener("click", (event) => {
+        // クリックされた要素が .store-item またはその子要素かを確認し、
+        // .store-item 要素そのものを取得する（closestを使用）
+        const storeItem = event.target.closest(".store-item");
+
+        if (storeItem) {
+          // データ属性から店舗IDと店舗名を取得
+          const storeId = storeItem.dataset.storeId;
+          const storeName = storeItem.dataset.storeName;
+
+          // 商品一覧表示関数を呼び出す
+          showItemsForStore(storeId, storeName);
+        }
+      });
+
+      // 特定の店舗の商品メニューを表示する関数（新規追加）
+      function showItemsForStore(storeId, storeName) {
+        console.log(`Showing items for store: ${storeName} (ID: ${storeId})`);
+
+        // UIの切り替え: 店舗一覧を隠し、商品一覧を表示
+        storeListContainer.style.display = "none";
+        itemListContainer.style.display = "block";
+
+        // 店舗名を見出しに設定
+        selectedStoreNameElement.textContent = `${storeName} のメニュー`;
+
+        // 商品リストをクリアして読み込み中を表示
+        itemListElement.innerHTML =
+          '<p class="loading-message">メニューを読み込み中...</p>';
+
+        // Firestoreから items コレクションを検索
+        // where句を使って、storeIdが一致する商品のみを取得
+        db.collection("items")
+          .where("storeId", "==", storeId)
+          .get()
+          .then((querySnapshot) => {
+            itemListElement.innerHTML = ""; // 読み込み中を消去
+
+            if (querySnapshot.empty) {
+              itemListElement.innerHTML =
+                "<p>この店舗にはまだメニューが登録されていません。</p>";
+              return;
+            }
+
+            // 取得した商品をループ処理
+            querySnapshot.forEach((doc) => {
+              const item = doc.data();
+              const itemName = item.name ? item.name : "商品名なし";
+              const itemPrice = item.price ? item.price : 0;
+
+              // 商品カードのHTMLを生成
+              const itemHtml = `
+                            <div class="item-card">
+                                <div class="item-name">${itemName}</div>
+                                <div class="item-price">¥${itemPrice}</div>
+                            </div>
+                        `;
+              itemListElement.innerHTML += itemHtml;
+            });
+          })
+          .catch((error) => {
+            console.error("Error getting items: ", error);
+            itemListElement.innerHTML =
+              '<p class="error-message">メニューの取得に失敗しました。</p>';
           });
       }
     </script>
