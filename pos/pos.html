@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文化祭POS - Cloud Functions Integration</title>
+    <title>文化祭POS - Store Specific</title>
     <style>
         :root {
             --bg-color: #333;
@@ -39,6 +39,43 @@
             font-size: 16px; border-radius: 4px; cursor: pointer; margin-top: 15px;
         }
 
+        /* --- エラー画面 (店舗ID未指定時) --- */
+        #error-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffebee; z-index: 10000;
+            display: none; /* 初期非表示 */
+            flex-direction: column;
+            justify-content: center; align-items: center;
+            color: #c62828; font-weight: bold; font-size: 1.5em;
+            text-align: center; padding: 20px;
+        }
+
+        /* --- 全画面ローディングオーバーレイ --- */
+        #global-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 99999;
+            display: none;
+            flex-direction: column;
+            justify-content: center; align-items: center;
+            color: white;
+        }
+        #global-loader.active { display: flex; }
+        
+        .spinner {
+            width: 60px; height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text { font-size: 1.5em; font-weight: bold; letter-spacing: 2px; }
+
         /* --- トップバー --- */
         .top-bar {
             height: 30px; background: #1a1a1a; color: #fff;
@@ -55,22 +92,18 @@
 
         /* --- 左側：注文リストエリア --- */
         .order-panel {
-            width: 32%;
-            background: #fff;
+            width: 32%; background: #fff;
             display: flex; flex-direction: column;
             border-right: 4px solid #444;
         }
-
         .list-header {
             background: #333; color: #fff; padding: 10px;
             font-weight: bold; text-align: center; letter-spacing: 1px;
         }
-
         .order-list {
             flex: 1; overflow-y: auto; padding: 0; margin: 0; list-style: none;
             background: #fff;
         }
-
         .order-item {
             padding: 10px 15px; border-bottom: 1px solid #ddd;
             cursor: pointer; font-size: 1.1em; color: #333;
@@ -78,16 +111,13 @@
         .order-item.selected {
             background-color: var(--selected-bg); color: white;
         }
-
         .item-row { display: flex; align-items: baseline; }
         .item-qty {
             font-weight: 900; font-size: 1.3em; width: 40px; text-align: right; margin-right: 15px;
         }
         .item-name { font-weight: bold; flex: 1; }
         .item-price { font-size: 0.9em; font-weight: normal; margin-left: 10px; }
-        
         .order-item.selected .item-qty { color: #ffeb3b; }
-
         .item-mods {
             padding-left: 55px; font-size: 0.85em; margin-top: 2px;
             display: flex; flex-direction: column;
@@ -95,10 +125,8 @@
         .mod-line { font-weight: bold; }
         .mod-no { color: #d32f2f; }
         .mod-add { color: #2e7d32; }
-        
         .order-item.selected .mod-no { color: #ff8a80; }
         .order-item.selected .mod-add { color: #b9f6ca; }
-
         .total-area {
             background: #222; color: #0f0;
             padding: 15px; font-size: 2.2em;
@@ -107,12 +135,9 @@
 
         /* --- 右側：操作パネル --- */
         .control-panel {
-            width: 68%;
-            background: var(--panel-bg);
-            padding: 8px;
-            display: flex; flex-direction: column; gap: 8px;
+            width: 68%; background: var(--panel-bg);
+            padding: 8px; display: flex; flex-direction: column; gap: 8px;
         }
-
         .modifier-row { display: flex; gap: 8px; }
         .mode-btn {
             flex: 0 0 80px; height: 60px;
@@ -123,7 +148,6 @@
         }
         .mode-btn[data-mode="NO"].active { background: #d32f2f; color: white; border-color: #b71c1c; }
         .mode-btn[data-mode="ADD"].active { background: #2e7d32; color: white; border-color: #1b5e20; }
-
         .ingredient-container {
             flex: 1; display: flex; gap: 5px; overflow-x: auto;
             background: #e0e0e0; border: 1px solid #999; border-radius: 4px;
@@ -138,7 +162,6 @@
         }
         .ing-btn:active { transform: translateY(2px); box-shadow: none; }
         .no-toppings-msg { width: 100%; text-align: center; color: #666; font-size: 0.9em; }
-
         .quantity-control-row {
             display: flex; gap: 10px; height: 60px;
             align-items: center;
@@ -154,14 +177,12 @@
         .qty-btn:active { transform: translateY(2px); box-shadow: none; }
         .qty-btn.minus { color: #d32f2f; }
         .qty-btn.plus { color: #2e7d32; }
-        
         .qty-display-area {
             flex: 0 0 80px; text-align: center;
             font-size: 2em; font-weight: bold; color: #333;
             background: white; height: 100%; line-height: 50px;
             border-radius: 4px; border: 1px solid #bbb;
         }
-
         .delete-btn {
             flex: 0 0 120px; height: 100%;
             background: #d32f2f; color: white;
@@ -171,7 +192,6 @@
             margin-left: 10px;
         }
         .delete-btn:active { transform: translateY(2px); box-shadow: none; }
-
         .product-grid {
             flex: 1;
             display: grid;
@@ -192,14 +212,12 @@
         .prod-btn:active { transform: scale(0.96); background: #eee; }
         .prod-name { font-weight: bold; line-height: 1.2; font-size: 0.95em; }
         .prod-price { font-size: 0.85em; margin-top: 5px; color: #555; font-weight: bold; }
-        
         .prod-btn::before {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: #999;
         }
         .prod-btn[data-type="burger"]::before { background: #ff9800; }
         .prod-btn[data-type="drink"]::before { background: #2196f3; }
         .prod-btn[data-type="side"]::before { background: #4caf50; }
-
         .footer-actions {
             height: 70px; display: flex; gap: 10px;
             border-top: 1px solid #ccc; padding-top: 8px;
@@ -221,27 +239,22 @@
             justify-content: center; align-items: center; z-index: 2000;
         }
         .modal-overlay.active { display: flex; }
-        
         .modal-box {
             background: white; padding: 40px; border-radius: 12px;
             text-align: center; min-width: 450px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
-
         .receipt-num { font-size: 5em; font-weight: bold; color: #333; margin: 20px 0; }
         .close-btn { padding: 10px 30px; font-size: 1.2em; cursor: pointer; border-radius: 6px; border: 1px solid #aaa; background: #eee; }
-
         .confirm-title { font-size: 1.5em; font-weight: bold; margin-bottom: 20px; }
         .confirm-total { font-size: 3em; font-weight: bold; color: #2e7d32; margin: 20px 0; font-family: 'Courier New', monospace; }
         .confirm-text { font-size: 1.2em; color: #555; margin-bottom: 30px; }
-        
         .modal-actions { display: flex; justify-content: center; gap: 20px; }
         .modal-btn {
             padding: 15px 40px; font-size: 1.2em; border-radius: 8px;
             border: none; cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         .modal-btn:active { transform: translateY(2px); box-shadow: none; }
-
         .modal-btn.cancel { background: #999; color: white; }
         .modal-btn.confirm-checkout { background: #2e7d32; color: white; }
         .modal-btn.confirm-clear { background: #d32f2f; color: white; }
@@ -249,6 +262,17 @@
     </style>
 </head>
 <body>
+
+    <!-- 処理中ローダー (最前面) -->
+    <div id="global-loader">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loader-text">読み込み中...</div>
+    </div>
+
+    <!-- エラー画面 (店舗ID未指定時) -->
+    <div id="error-screen">
+        <p>店舗IDが指定されていません。<br>ポータル画面からアクセスしてください。</p>
+    </div>
 
     <!-- ログイン画面 -->
     <div id="login-screen">
@@ -295,7 +319,7 @@
 
             <!-- 下段: 商品一覧 -->
             <div id="product-grid" class="product-grid">
-                <div style="padding:20px; color:#666;">読み込み中...</div>
+                <!-- JSで描画 -->
             </div>
 
             <!-- フッター -->
@@ -351,7 +375,6 @@
             from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } 
             from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-        // MOD: Functionsのインポート追加
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
         const firebaseConfig = {
@@ -366,7 +389,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        // MOD: Functions初期化 (デフォルトリージョン: us-central1)
         const functions = getFunctions(app);
 
         // State
@@ -376,6 +398,10 @@
         let currentMode = null;
         let orderStartTime = null;
         let timerInterval = null;
+        let isProcessing = false;
+        
+        // MOD: 店舗ID
+        let storeId = null;
 
         // Elements
         const orderListEl = document.getElementById('order-list');
@@ -387,13 +413,32 @@
         const qtyDisplay = document.getElementById('current-qty-display');
         const clockDisplay = document.getElementById('clock-display');
         const timerDisplay = document.getElementById('timer-display');
+        const loader = document.getElementById('global-loader');
+        const loaderText = document.getElementById('loader-text');
+        const errorScreen = document.getElementById('error-screen');
 
         // Modals
         const checkoutModal = document.getElementById('checkout-confirm-modal');
         const clearModal = document.getElementById('clear-confirm-modal');
         const successModal = document.getElementById('success-modal');
 
-        // Auth
+        // MOD: 起動時にURLからstoreIdを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        storeId = urlParams.get('storeId');
+
+        // --- Loader Control ---
+        function showLoader(text = "処理中...") {
+            loaderText.innerText = text;
+            loader.classList.add('active');
+            isProcessing = true;
+        }
+
+        function hideLoader() {
+            loader.classList.remove('active');
+            isProcessing = false;
+        }
+
+        // --- Auth ---
         document.getElementById('google-login-btn').addEventListener('click', async () => {
             try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
             catch (e) { document.getElementById('login-error').textContent = e.message; }
@@ -401,6 +446,13 @@
 
         onAuthStateChanged(auth, user => {
             if (user) {
+                // MOD: storeIdの存在チェック
+                if (!storeId) {
+                    document.getElementById('login-screen').style.display = 'none';
+                    errorScreen.style.display = 'flex'; // エラー画面表示
+                    return; // 処理停止
+                }
+
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-container').style.display = 'flex';
                 fetchProducts();
@@ -411,7 +463,7 @@
             }
         });
 
-        // Clock & Timer
+        // --- Clock ---
         function startClock() {
             setInterval(() => {
                 const now = new Date();
@@ -438,27 +490,38 @@
             timerDisplay.textContent = "00:00";
         }
 
-        // Data
+        // --- Data ---
         async function fetchProducts() {
+            showLoader("商品データを\n読み込んでいます");
             try {
-                const q = query(collection(db, "items"), where("isAvailable", "==", true));
+                // MOD: storeIdでフィルタリング
+                const q = query(
+                    collection(db, "items"), 
+                    where("isAvailable", "==", true),
+                    where("storeId", "==", storeId) // 店舗IDが一致するもののみ
+                );
+                
                 const snap = await getDocs(q);
                 products = [];
-                if(snap.empty) { productGrid.innerHTML = '<p>商品がありません</p>'; return; }
-                
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    products.push({
-                        id: doc.id,
-                        name: data.name,
-                        price: Number(data.price),
-                        allowedToppings: data.allowedToppings || []
+                if(snap.empty) { 
+                    productGrid.innerHTML = '<p>この店舗の商品データがありません</p>'; 
+                } else {
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        products.push({
+                            id: doc.id,
+                            name: data.name,
+                            price: Number(data.price),
+                            allowedToppings: data.allowedToppings || []
+                        });
                     });
-                });
-                renderProductGrid();
+                    renderProductGrid();
+                }
             } catch (e) {
                 console.error(e);
                 productGrid.innerHTML = `<p style="color:red">エラー: ${e.message}</p>`;
+            } finally {
+                hideLoader();
             }
         }
 
@@ -479,9 +542,11 @@
             });
         }
 
-        // Cart
+        // --- Cart Logic (変更なし) ---
         window.addToCart = (product) => {
+            if (isProcessing) return;
             if (cart.length === 0) startOrderTimer();
+            
             const existingItem = cart.find(item => item.productId === product.id && item.customizations.length === 0);
             if (existingItem) {
                 existingItem.quantity++;
@@ -645,6 +710,7 @@
 
         // --- Modals Logic ---
         window.closeAllModals = () => {
+            if (isProcessing) return;
             checkoutModal.classList.remove('active');
             clearModal.classList.remove('active');
             successModal.classList.remove('active');
@@ -656,18 +722,16 @@
             checkoutModal.classList.add('active');
         };
 
-        // MOD: 採番ロジックをCloud Functions呼び出しに変更
         window.processCheckout = async () => {
+            if (isProcessing) return;
+            
+            showLoader("注文を送信中...\n(少々お待ちください)");
+
             try {
-                // MOD: Callable Functionの参照を作成
+                // Cloud Functionから番号取得
                 const getNextReceiptNumber = httpsCallable(functions, 'getNextReceiptNumber');
-                
-                console.log("Cloud Function 'getNextReceiptNumber' を呼び出します...");
-                // MOD: サーバーから採番 (await)
-                // ローディング中のUXが必要ならここでボタン無効化やスピナー表示などを入れる
                 const result = await getNextReceiptNumber();
                 const receiptNumber = result.data.receiptNumber;
-                console.log("サーバーから新しい受付番号を取得しました:", receiptNumber);
 
                 const orderData = {
                     items: cart.map(i => ({
@@ -680,7 +744,8 @@
                     totalPrice: cart.reduce((s, i) => s + (i.price * i.quantity), 0),
                     status: 'unpaid_at_pos',
                     createdAt: serverTimestamp(),
-                    receiptNumber: receiptNumber // MOD: Cloud Functionsから取得した番号
+                    receiptNumber: receiptNumber,
+                    storeId: storeId // MOD: 店舗IDを追加
                 };
                 
                 await addDoc(collection(db, "orders"), orderData);
@@ -694,9 +759,11 @@
                 resetOrderTimer();
 
             } catch (e) {
-                console.error("注文確定処理中にエラーが発生しました:", e);
-                alert("エラーが発生しました。注文を確定できませんでした。\n" + e.message);
+                console.error("Error:", e);
+                alert("エラーが発生しました。\n" + e.message);
                 closeAllModals();
+            } finally {
+                hideLoader();
             }
         };
 
