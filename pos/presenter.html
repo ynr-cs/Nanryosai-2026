@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Presenter | 提供口・管制塔</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Roboto:wght@500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* --- ベース設定 (Kitchenと同じ) --- */
+      body {
+        font-family: "Noto Sans JP", "Roboto", sans-serif;
+        background-color: #000000; /* 完全な黒 */
+        color: #e0e0e0;
+        margin: 0;
+        padding: 15px;
+        transition: zoom 0.2s ease;
+      }
+
+      /* --- ヘッダー --- */
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 12px 20px;
+        background-color: #1a1a1a;
+        border-bottom: 1px solid #333;
+        border-radius: 8px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #fff;
+        font-weight: 900;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .user-info {
+        font-size: 0.9rem;
+        color: #aaa;
+      }
+
+      /* ボタン共通 */
+      .btn-header {
+        background-color: #333;
+        color: #fff;
+        border: 1px solid #555;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: bold;
+        transition: background 0.2s;
+        user-select: none;
+      }
+      .btn-header:hover {
+        background-color: #444;
+      }
+
+      /* ズームボタン */
+      .zoom-controls {
+        display: flex;
+        gap: 5px;
+        margin-right: 15px;
+      }
+      .btn-zoom {
+        font-size: 1.2rem;
+        width: 40px;
+        padding: 5px 0;
+        text-align: center;
+        background-color: #444;
+      }
+
+      /* --- ログイン画面 --- */
+      #login-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 80vh;
+      }
+      .btn-google-login {
+        background-color: #4285f4;
+        color: white;
+        padding: 12px 24px;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      /* --- グリッドレイアウト --- */
+      .orders-grid {
+        display: grid;
+        grid-template-columns: repeat(
+          auto-fill,
+          minmax(300px, 1fr)
+        ); /* 少し幅広に */
+        gap: 15px;
+      }
+
+      /* --- 注文カードデザイン --- */
+      .order-card {
+        background-color: #ffffff;
+        color: #111;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        overflow: visible; /* ドロップダウン用にvisibleに変更 */
+        position: relative;
+        animation: fadeIn 0.3s ease-out;
+        border: 1px solid #444;
+        min-height: 300px;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card-body {
+        padding: 12px 15px;
+        flex-grow: 1;
+      }
+
+      .card-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #eee;
+      }
+      /* 受付番号：特大サイズ */
+      .order-id {
+        font-size: 2.8rem; /* Kitchenより大きく */
+        font-weight: 900;
+        color: #000;
+        line-height: 1;
+        letter-spacing: -1px;
+      }
+      .header-right-col {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      .order-timer {
+        font-family: "Roboto", monospace;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #333;
+      }
+      .timer-alert {
+        color: #d32f2f;
+        animation: flash 2s infinite;
+      }
+      @keyframes flash {
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* メニューボタン（三点リーダー） */
+      .menu-btn {
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: #888;
+        padding: 0 5px;
+        margin-bottom: 5px;
+        line-height: 0.8;
+      }
+      .menu-btn:hover {
+        color: #000;
+      }
+
+      /* ドロップダウンメニュー */
+      .dropdown-menu {
+        position: absolute;
+        top: 50px;
+        right: 10px;
+        background-color: #333;
+        color: #fff;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        display: none;
+        z-index: 100;
+        overflow: hidden;
+        width: 180px;
+      }
+      .dropdown-menu.show {
+        display: block;
+      }
+      .dropdown-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #444;
+        font-size: 0.95rem;
+        font-weight: bold;
+      }
+      .dropdown-item:last-child {
+        border-bottom: none;
+      }
+      .dropdown-item:hover {
+        background-color: #444;
+      }
+      .text-danger {
+        color: #ff5252;
+      }
+      .text-warn {
+        color: #ffb74d;
+      }
+
+      /* 商品リスト */
+      .item-row {
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px dashed #ddd;
+      }
+      .item-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+      .item-main {
+        display: flex;
+        align-items: baseline;
+      }
+      .item-qty {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: #000;
+        width: 35px;
+        text-align: right;
+        margin-right: 12px;
+      }
+      .item-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #222;
+        line-height: 1.2;
+      }
+
+      .item-customizations {
+        margin-top: 8px;
+        padding-left: 50px;
+      }
+      .customization-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .cust-badge {
+        font-size: 0.9rem;
+        font-weight: 900;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-right: 10px;
+        min-width: 40px;
+        text-align: center;
+      }
+      .cust-text {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #333;
+      }
+      /* トッピングの配色 */
+      .bg-red {
+        background-color: #d32f2f;
+      }
+      .bg-green {
+        background-color: #2e7d32;
+      }
+      .bg-gray {
+        background-color: #757575;
+      }
+      /* テキスト強調（NOマスタード等） */
+      .text-alert {
+        color: #d32f2f;
+        font-weight: 900;
+      }
+
+      /* --- フッターエリア (ボタン切り替え) --- */
+      .card-footer {
+        padding: 0;
+        margin-top: auto;
+      }
+
+      .btn-action {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.3rem;
+        font-weight: 900;
+        border: none;
+        cursor: pointer;
+        color: white;
+      }
+
+      /* フェーズ1: 呼び出しボタン */
+      .btn-call {
+        background-color: #1565c0; /* Blue */
+        border-radius: 0 0 6px 6px;
+      }
+      .btn-call:hover {
+        background-color: #0d47a1;
+      }
+
+      /* フェーズ2: 支払いボタン */
+      .payment-actions {
+        display: flex;
+      }
+      .btn-half {
+        width: 50%;
+        padding: 16px;
+        font-size: 1.1rem;
+        font-weight: 900;
+        border: none;
+        cursor: pointer;
+        color: white;
+      }
+      .btn-half:first-child {
+        border-bottom-left-radius: 6px;
+        border-right: 1px solid rgba(0, 0, 0, 0.1);
+      }
+      .btn-half:last-child {
+        border-bottom-right-radius: 6px;
+      }
+
+      .btn-cash {
+        background-color: #2e7d32;
+      } /* Green */
+      .btn-cash:hover {
+        background-color: #1b5e20;
+      }
+
+      .btn-qr {
+        background-color: #ef6c00;
+      } /* Orange */
+      .btn-qr:hover {
+        background-color: #e65100;
+      }
+
+      /* フェーズ2: モニター待機表示 */
+      .status-monitor-wait {
+        background-color: #fff9c4; /* 薄い黄色 */
+        color: #f57f17;
+        padding: 15px;
+        text-align: center;
+        font-weight: 900;
+        font-size: 1.1rem;
+        border-top: 1px solid #ddd;
+        border-radius: 0 0 6px 6px;
+        animation: blink 2s infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.6;
+        }
+      }
+
+      /* --- エラー表示 --- */
+      #error-message {
+        display: none;
+        background: #b71c1c;
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      #error-message a {
+        color: #ffd700;
+      }
+
+      /* --- モーダル (履歴など) --- */
+      /* kitchen.htmlと同じスタイル */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        background-color: #fff;
+        width: 90%;
+        max-width: 700px;
+        height: 85vh;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        color: #333;
+      }
+      .modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #f9fafb;
+        border-radius: 8px 8px 0 0;
+      }
+      .modal-close {
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #aaa;
+        padding: 0 10px;
+      }
+      .history-list {
+        overflow-y: auto;
+        padding: 0;
+        flex-grow: 1;
+      }
+      .history-item {
+        border-bottom: 1px solid #eee;
+        padding: 15px 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="error-message"></div>
+
+    <!-- ログイン画面 -->
+    <div id="login-screen">
+      <h2 style="color: white">Presenter / 提供口モニター</h2>
+      <button class="btn-google-login" onclick="googleLogin()">
+        Googleアカウントでログイン
+      </button>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div id="main-content" style="display: none">
+      <header>
+        <div>
+          <h1>提供口管制塔 (Presenter)</h1>
+          <span style="font-size: 0.8rem; color: #888"
+            >Store ID: <span id="display-store-id">--</span></span
+          >
+        </div>
+        <div class="header-right">
+          <!-- ズーム操作 -->
+          <div class="zoom-controls">
+            <button class="btn-header btn-zoom" onclick="adjustZoom(-0.1)">
+              -
+            </button>
+            <button class="btn-header btn-zoom" onclick="adjustZoom(0.1)">
+              +
+            </button>
+          </div>
+
+          <!-- 必要に応じて履歴を表示 -->
+          <!-- <button class="btn-header" onclick="alert('履歴機能は現在未実装です')">履歴</button> -->
+
+          <span class="user-info" id="user-name"></span>
+          <button class="btn-header" onclick="logout()">ログアウト</button>
+        </div>
+      </header>
+
+      <div id="orders-container" class="orders-grid"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+      // --- Firebase Config ---
+      const firebaseConfig = {
+        apiKey: "AIzaSyA-Ijkbo-9rgrNKbDlRJ-rQVYdSXR_a9Do",
+        authDomain: "nanryosai-2026-a4091.firebaseapp.com",
+        projectId: "nanryosai-2026-a4091",
+        storageBucket: "nanryosai-2026-a4091.firebasestorage.app",
+        messagingSenderId: "360316480856",
+        appId: "1:360316480856:web:1234567890abcdef",
+      };
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      const db = firebase.firestore();
+      const auth = firebase.auth();
+      const provider = new firebase.auth.GoogleAuthProvider();
+
+      let unsubscribe = null;
+      const urlParams = new URLSearchParams(window.location.search);
+      const storeId = urlParams.get("storeId");
+
+      const ordersContainer = document.getElementById("orders-container");
+      const errorMsgEl = document.getElementById("error-message");
+
+      // --- 音声 (Ping) ---
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      function playPingSound() {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(
+          0.001,
+          audioCtx.currentTime + 0.5
+        );
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+      }
+
+      // --- ズーム機能 ---
+      let currentZoom = 1.0;
+      function adjustZoom(delta) {
+        currentZoom = Math.round((currentZoom + delta) * 10) / 10;
+        if (currentZoom < 0.5) currentZoom = 0.5;
+        if (currentZoom > 2.0) currentZoom = 2.0;
+        document.body.style.zoom = currentZoom;
+      }
+
+      function showError(html) {
+        errorMsgEl.innerHTML = html;
+        errorMsgEl.style.display = "block";
+      }
+
+      // --- Auth ---
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          document.getElementById("login-screen").style.display = "none";
+          document.getElementById("main-content").style.display = "block";
+          document.getElementById("user-name").textContent = user.displayName;
+          document.getElementById("display-store-id").textContent =
+            storeId || "なし";
+
+          if (!storeId) {
+            showError("Error: URLに ?storeId=XXX がありません");
+            return;
+          }
+          startOrderListener();
+          startTimerLoop();
+        } else {
+          document.getElementById("login-screen").style.display = "flex";
+          document.getElementById("main-content").style.display = "none";
+          if (unsubscribe) unsubscribe();
+        }
+      });
+
+      function googleLogin() {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        auth.signInWithPopup(provider).catch((e) => alert(e.message));
+      }
+      function logout() {
+        if (confirm("ログアウトしますか？"))
+          auth.signOut().then(() => location.reload());
+      }
+
+      // --- Firestore Listener (Presenter用) ---
+      function startOrderListener() {
+        let isInitialLoad = true;
+
+        // 監視対象: ready_to_serve (調理完了・呼出前) と ready_for_pickup (呼出済・受渡前)
+        unsubscribe = db
+          .collection("orders")
+          .where("storeId", "==", storeId)
+          .where("status", "in", ["ready_to_serve", "ready_for_pickup"])
+          .orderBy("createdAt", "asc") // 古い順
+          .onSnapshot(
+            (snapshot) => {
+              snapshot.docChanges().forEach((change) => {
+                const data = change.doc.data();
+                if (change.type === "added") {
+                  removeCard(change.doc.id);
+                  renderCardSorted(change.doc);
+                  // 新規呼び出し待ち(ready_to_serve)が追加されたら音を鳴らす
+                  if (!isInitialLoad && data.status === "ready_to_serve") {
+                    playPingSound();
+                  }
+                }
+                if (change.type === "modified") {
+                  removeCard(change.doc.id);
+                  renderCardSorted(change.doc);
+                }
+                if (change.type === "removed") {
+                  removeCard(change.doc.id);
+                }
+              });
+              isInitialLoad = false;
+            },
+            (error) => {
+              console.error("Firestore Error:", error);
+              if (error.code === "failed-precondition") {
+                showError(
+                  `インデックスが必要です。<a href="#" onclick="alert('コンソールを確認してください')">詳細</a>`
+                );
+              } else if (error.code === "permission-denied") {
+                showError("アクセス権限がありません。");
+              }
+            }
+          );
+      }
+
+      // --- カード描画 ---
+      function renderCardSorted(doc) {
+        const data = doc.data();
+        const createdDate = data.createdAt
+          ? data.createdAt.toDate()
+          : new Date();
+        const createdTimeMs = createdDate.getTime();
+
+        const cardEl = createCardElement(doc, createdDate);
+
+        const children = ordersContainer.children;
+        let inserted = false;
+        // 古い順に並べる
+        for (let i = 0; i < children.length; i++) {
+          const childTime = parseInt(children[i].dataset.createdAt);
+          if (createdTimeMs < childTime) {
+            ordersContainer.insertBefore(cardEl, children[i]);
+            inserted = true;
+            break;
+          }
+        }
+        if (!inserted) {
+          ordersContainer.appendChild(cardEl);
+        }
+        updateSingleTimer(cardEl, Date.now());
+      }
+
+      function createCardElement(doc, createdDate) {
+        const data = doc.data();
+        const orderId = doc.id;
+        // 受付番号（特大表示用）
+        const displayId = data.receiptNumber
+          ? `${data.receiptNumber}`
+          : `${orderId.slice(-4).toUpperCase()}`;
+
+        // アイテムリスト構築
+        let itemsHtml = buildItemsHtml(data.items);
+
+        // --- フッター（ステータスによる分岐） ---
+        let footerHtml = "";
+
+        // 【フェーズ1】 未呼び出し
+        if (data.status === "ready_to_serve") {
+          footerHtml = `
+                <button class="btn-action btn-call" onclick="updateStatus('${orderId}', 'ready_for_pickup')">
+                    呼び出し (準備完了)
+                </button>
+            `;
+        }
+        // 【フェーズ2】 呼び出し済み
+        else if (data.status === "ready_for_pickup") {
+          // パターンA: オンライン/プリペイド判定
+          // isPrepaidフラグ または paymentMethodがonline/creditなど
+          const isOnline =
+            data.isPrepaid === true ||
+            data.paymentMethod === "online" ||
+            data.isOnlineOrder === true;
+
+          if (isOnline) {
+            footerHtml = `
+                    <div class="status-monitor-wait">
+                        モニターで決済待機中...<br>
+                        <span style="font-size:0.8rem; font-weight:normal;">お客様の操作待ち</span>
+                    </div>
+                `;
+          } else {
+            // パターンB: 現地支払い
+            footerHtml = `
+                    <div class="payment-actions">
+                        <button class="btn-half btn-cash" onclick="completeOrder('${orderId}', 'cash')">現金 完了</button>
+                        <button class="btn-half btn-qr" onclick="completeOrder('${orderId}', 'qr')">QR 完了</button>
+                    </div>
+                `;
+          }
+        }
+
+        const div = document.createElement("div");
+        div.className = "order-card";
+        div.id = `card-${orderId}`;
+        div.dataset.createdAt = createdDate.getTime();
+        div.dataset.status = data.status;
+
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="card-header-row">
+                    <span class="order-id">${displayId}</span>
+                    <div class="header-right-col">
+                        <!-- メニューボタン -->
+                        <div style="position:relative;">
+                            <button class="menu-btn" onclick="toggleMenu('${orderId}', event)">⋮</button>
+                            <div id="menu-${orderId}" class="dropdown-menu">
+                                <div class="dropdown-item text-warn" onclick="forceComplete('${orderId}')">緊急完了 (手動)</div>
+                                <div class="dropdown-item text-danger" onclick="cancelOrder('${orderId}')">提供不可・キャンセル</div>
+                            </div>
+                        </div>
+                        <!-- タイマー -->
+                        <span class="order-timer" id="timer-${orderId}">00:00</span>
+                    </div>
+                </div>
+                <div>${itemsHtml}</div>
+            </div>
+            <div class="card-footer">
+                ${footerHtml}
+            </div>
+        `;
+        return div;
+      }
+
+      function buildItemsHtml(items) {
+        if (!items || !Array.isArray(items)) return "";
+
+        return items
+          .map((item) => {
+            let customizationHtml = "";
+            if (item.customizations && item.customizations.length > 0) {
+              const rows = item.customizations
+                .map((c) => {
+                  // オブジェクトか文字列かで判定
+                  let mode = "",
+                    target = c;
+                  if (typeof c === "object") {
+                    mode = c.mode || "";
+                    target = c.target || c.name || "";
+                  }
+
+                  let badgeClass = "bg-gray";
+                  let textClass = "cust-text";
+                  let displayMode = mode || "OPT";
+
+                  if (mode === "ADD") {
+                    badgeClass = "bg-green";
+                  } else if (mode === "NO" || mode === "REMOVE") {
+                    badgeClass = "bg-red";
+                    displayMode = "NO";
+                    textClass += " text-alert"; // 赤字強調
+                  }
+
+                  return `<div class="customization-row">
+                            <span class="cust-badge ${badgeClass}">${displayMode}</span>
+                            <span class="${textClass}">${target}</span>
+                          </div>`;
+                })
+                .join("");
+              customizationHtml = `<div class="item-customizations">${rows}</div>`;
+            }
+            return `
+                <div class="item-row">
+                    <div class="item-main">
+                        <div class="item-qty">${item.quantity}</div>
+                        <div class="item-name">${item.name}</div>
+                    </div>
+                    ${customizationHtml}
+                </div>`;
+          })
+          .join("");
+      }
+
+      function removeCard(id) {
+        const el = document.getElementById(`card-${id}`);
+        if (el) el.remove();
+      }
+
+      // --- タイマー処理 ---
+      function startTimerLoop() {
+        setInterval(() => {
+          const now = Date.now();
+          document
+            .querySelectorAll(".order-card")
+            .forEach((c) => updateSingleTimer(c, now));
+        }, 1000);
+      }
+
+      function updateSingleTimer(cardEl, now) {
+        const createdAt = parseInt(cardEl.dataset.createdAt);
+        if (!createdAt) return;
+        const diffSeconds = Math.floor((now - createdAt) / 1000);
+        const mm = String(Math.floor(diffSeconds / 60)).padStart(2, "0");
+        const ss = String(diffSeconds % 60).padStart(2, "0");
+        const timerSpan = cardEl.querySelector(".order-timer");
+        if (timerSpan) {
+          timerSpan.textContent = `${mm}:${ss}`;
+          if (diffSeconds > 900)
+            timerSpan.classList.add("timer-alert"); // 15分以上で警告
+          else timerSpan.classList.remove("timer-alert");
+        }
+      }
+
+      // --- アクション処理 ---
+
+      // ステータス更新（呼出など）
+      window.updateStatus = function (orderId, newStatus) {
+        db.collection("orders")
+          .doc(orderId)
+          .update({
+            status: newStatus,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          })
+          .catch((e) => alert("更新失敗: " + e.message));
+      };
+
+      // 完了処理 (現地決済)
+      window.completeOrder = function (orderId, method) {
+        db.collection("orders")
+          .doc(orderId)
+          .update({
+            status: "completed_at_store",
+            paymentMethod: method,
+            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          })
+          .catch((e) => alert("完了失敗: " + e.message));
+      };
+
+      // 緊急完了
+      window.forceComplete = function (orderId) {
+        if (
+          !confirm(
+            "【緊急完了】\n強制的に完了済みに変更します。在庫は減算されません。よろしいですか？"
+          )
+        )
+          return;
+        db.collection("orders").doc(orderId).update({
+          status: "completed_at_store",
+          note: "緊急手動完了",
+          completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      };
+
+      // キャンセル
+      window.cancelOrder = function (orderId) {
+        if (
+          !confirm(
+            "【キャンセル】\nこの注文を提供不可としてキャンセルしますか？"
+          )
+        )
+          return;
+        db.collection("orders").doc(orderId).update({
+          status: "cancelled",
+          cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      };
+
+      // メニュー開閉
+      window.toggleMenu = function (orderId, event) {
+        event.stopPropagation();
+        // 他を閉じる
+        document.querySelectorAll(".dropdown-menu").forEach((el) => {
+          if (el.id !== `menu-${orderId}`) el.classList.remove("show");
+        });
+        const menu = document.getElementById(`menu-${orderId}`);
+        if (menu) menu.classList.toggle("show");
+      };
+
+      // 画面クリックでメニューを閉じる
+      window.onclick = function (event) {
+        if (!event.target.matches(".menu-btn")) {
+          document
+            .querySelectorAll(".dropdown-menu")
+            .forEach((el) => el.classList.remove("show"));
+        }
+      };
+    </script>
+  </body>
+</html>

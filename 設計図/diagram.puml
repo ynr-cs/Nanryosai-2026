@@ -1,0 +1,331 @@
+@startuml
+!theme mars
+
+title 第24回南陵祭 POS システム 全体構想 v3
+
+actor 来場者 as Visitor
+actor 厨房スタッフ as KitchenStaff
+actor 提供口スタッフ as PresenterStaff
+actor レジ担当スタッフ as POSStaff
+
+box "フロントエンドアプリケーション" #LightBlue
+    participant "mobile-order.html" as MobileOrderApp
+    participant "sok.html" as SOKApp
+    participant "pos.html" as POSApp
+    participant "status.html" as StatusApp
+    participant "kitchen.html" as KitchenDisplay
+    participant "presenter.html" as PresenterDisplay
+    participant "monitor.html\n(卓上iPad)" as MonitorDisplay
+    participant "pay.html (スマホ)" as PayApp
+end box
+
+box "バックエンド (Firebase)" #LightGreen
+    participant "Cloud Functions" as CloudFunctions
+    participant "Scheduled Function" as Scheduler
+    participant "Firebase Authentication" as FirebaseAuth
+    participant "Firebase Cloud Messaging" as FCM
+    participant "Cloud Firestore" as Firestore
+end box
+
+box "外部連携サービス" #LightCoral
+    participant "au PAY API" as AuPayAPI
+    participant "メール送信サービス (SendGrid)" as MailService
+end box
+
+autonumber
+
+' ===== 変更箇所ここから =====
+== 1. モバイルオーダー (Mobile Order) ==
+group モバイルオーダー - 目的: 混雑緩和
+
+    ' --- ステップ1: ログインと初期設定 ---
+    group ログインと初期設定
+        Visitor -> "店舗内QRコード": QRコードから南陵祭Webサイトへアクセス
+        Visitor -> MobileOrderApp: mobile-order.htmlにアクセス
+
+        MobileOrderApp -> Visitor: **Googleアカウントでのログインを要求**
+        Visitor -> MobileOrderApp: 「Googleでログイン」ボタンを押下
+        MobileOrderApp -> FirebaseAuth: Google認証を要求 (signInWithPopup/Redirect)
+        
+        alt 認証成功
+            FirebaseAuth --> MobileOrderApp: 認証成功 (ユーザー情報)
+            note right of MobileOrderApp: 初回ログインの場合、\nCloud Functionsトリガーで\nFirestoreにユーザーデータを作成
+            
+            ' --- Web Push通知許可 ---
+            MobileOrderApp -> Visitor: **Web Push通知の許可を要求**\n(「準備完了を通知します」)
+            alt 許可
+                Visitor -> MobileOrderApp: 許可する
+                note right of Visitor: ブラウザのダイアログでも許可
+                MobileOrderApp -> Firestore: ユーザー情報に通知許可フラグを記録
+            else 拒否/あとで
+                 Visitor -> MobileOrderApp: 許可しない
+            end
+
+            ' --- ペナルティ同意 ---
+            MobileOrderApp -> Visitor: **利用規約・ペナルティへの同意を要求**
+            Visitor -> MobileOrderApp: 「同意して進む」ボタンを押下
+            MobileOrderApp -> Firestore: ユーザー情報に同意フラグを記録
+            MobileOrderApp -> Visitor: 店舗・メニュー選択画面へ遷移
+
+        else 認証失敗 or キャンセル
+            FirebaseAuth --> MobileOrderApp: 認証失敗
+            MobileOrderApp -> Visitor: エラーメッセージを表示し、フローを中断
+        end
+    end
+
+    ' --- ステップ2: 商品選択 ---
+    group 店舗・メニュー選択とカート操作
+        MobileOrderApp -> Firestore: 店舗リストと各商品の在庫状況をリアルタイム取得
+        Firestore --> MobileOrderApp: メニュー情報 (売り切れ/販売停止中のUI制御)
+        MobileOrderApp -> Visitor: メニュー画面表示
+        Visitor -> MobileOrderApp: 購入したい商品をカートに追加
+        MobileOrderApp -> Firestore: **ログインユーザーに紐づく**カート情報として保存
+        Visitor -> MobileOrderApp: 内容確認後、「決済へ進む」ボタンを押下
+    end
+
+    ' --- ステップ3: 決済 (与信確保) ---
+    group 与信確保 (オーソリゼーション)
+        ' (この部分のシーケンスは元の設計とほぼ同じ)
+        MobileOrderApp -> CloudFunctions: createOnlineOrder を呼び出す
+        CloudFunctions -> Firestore: 受付番号を生成 (7000番台)
+        CloudFunctions -> Firestore: 注文データを作成 (status: 'awaiting_payment')
+        CloudFunctions -> "au PAY API": 与信確保 (Auth) リクエストを送信
+        
+        alt 与信確保成功
+            "au PAY API" --> CloudFunctions: 成功レスポンス
+            CloudFunctions -> Firestore: 注文ステータスを 'authorized' に更新
+            note right of CloudFunctions: この更新をトリガーに\nメール送信などが実行される
+            CloudFunctions --> MobileOrderApp: 成功を返す (status.htmlへ遷移)
+        else 与信確保失敗
+            "au PAY API" --> CloudFunctions: 失敗レスポンス
+            CloudFunctions -> Firestore: 注文ステータスを 'auth_failed' に更新
+            CloudFunctions --> MobileOrderApp: エラーを返す
+            MobileOrderApp -> Visitor: エラーメッセージを表示
+        end
+    end
+
+end
+
+' ===== 修正箇所 =====
+' "セルフオーダー" の全フローを一つの大きなグループで囲むように修正
+== 2. セルフオーダー (SOK) ==
+group セルフオーダー - 目的: 注文で並ぶ時間削減
+
+    group 仮注文とQRコード生成
+        Visitor -> "店舗カウンターに設置されたSOK端末": sok.htmlが表示されたiPad/端末を操作
+        Visitor -> SOKApp: メニュー閲覧、商品を選択してカートを確定
+        SOKApp -> CloudFunctions: createOrderFromSok (カート情報を送信)
+        CloudFunctions -> Firestore: orders コレクションに仮登録 (status: 'awaiting_payment')、ドキュメントID(注文ID)を取得
+        Firestore --> CloudFunctions: ドキュメントIDを返す
+        CloudFunctions --> SOKApp: 注文IDをクエリパラメータに含んだ決済ページURL (例: https://.../pay.html?orderId=...) を生成
+        SOKApp -> Visitor: QRコード描画ライブラリを使い、QRコードを画面に表示
+        Visitor -> Visitor: 自身のスマートフォンでQRコードを読み取る
+        Visitor -> PayApp: スマホのブラウザがpay.htmlを開き、注文内容を表示
+        PayApp -> Firestore: URLのクエリパラメータからorderIdを読み取り、Firestoreから注文情報を取得
+        Firestore --> PayApp: 注文情報を返す
+        PayApp -> Visitor: 注文内容を確認し、"決済へ進む"ボタンを押下
+    end
+
+    group 注文前の初期設定と同意取得フロー (SOKからの遷移)
+        group ステップ1: Googleアカウント認証とユーザープロファイル生成
+            PayApp -> Visitor: 「ご注文手続きのために、Googleアカウントでログインしてください」と表示
+            Visitor -> PayApp: 「Googleでログインして続ける」ボタンを押下
+            PayApp -> FirebaseAuth: Google認証ポップアップを要求
+            
+            alt 認証成功
+                FirebaseAuth --> PayApp: 認証成功 (ユーザー情報)
+                PayApp -> CloudFunctions: (初回認証トリガー)
+                CloudFunctions -> Firestore: ユーザープロファイル・ドキュメントを自動生成\n(userID, email, 同意ステータス領域)
+            else 認証失敗 or キャンセル
+                FirebaseAuth --> PayApp: 認証失敗
+                PayApp -> Visitor: フローを中断
+            end
+        end
+
+        group ステップ2: Web Push通知の許可要求
+            PayApp -> Visitor: 「商品の準備ができたらお知らせします。通知を許可してください」モーダル表示
+            alt 「通知を許可する」を選択
+                Visitor -> PayApp: 「通知を許可する」を選択
+                note right of Visitor: ブラウザのネイティブ許可ダイアログで再度「許可」
+                PayApp -> Firestore: ユーザープロファイルに "notification_enabled: true" を記録
+            else 「あとで」を選択 or ブロック
+                Visitor -> PayApp: 「あとで」を選択
+                PayApp -> Firestore: ユーザープロファイルに "notification_enabled: false" を記録
+            end
+        end
+
+        group ステップ3: 最重要ペナルティ規約への明確な同意
+            PayApp -> Visitor: 注文内容の最終確認画面と【※重要規約※】(15分放置ペナルティ)を赤枠で表示
+            note right of PayApp: 「支払いに進む」ボタンは非活性状態
+            Visitor -> PayApp: 「□ 上記の全ての規約に同意し、注文を確定します。」チェックボックスをオンにする
+            note right of PayApp: 「支払いに進む」ボタンが活性化
+            Visitor -> PayApp: 「(金額)円の支払いに進む」ボタンを押下
+            PayApp -> Firestore: 注文データに「規約同意」の事実とタイムスタンプを記録
+        end
+    end
+
+    group 与信確保 (モバイルオーダーとほぼ同じロジック, 2000番台の受付番号)
+        PayApp -> CloudFunctions: (シナリオAのステップ3与信確保とほとんど同じCloud Functionsを呼び出す)
+        CloudFunctions -> Firestore: counters/sok ドキュメントから受付番号生成 (2000番台)
+        Firestore --> CloudFunctions: 受付番号 (例: 2XXX) を返す
+        CloudFunctions -> Firestore: orders コレクションの該当ドキュメントを更新
+        CloudFunctions -> AuPayAPI: 指定売上方式での与信確保(Auth)リクエストを送信
+        AuPayAPI --> CloudFunctions: 与信確保成功/失敗レスポンスを返す
+
+        alt 与信確保成功の場合
+            CloudFunctions -> Firestore: 該当注文ドキュメントのstatusを'authorized'に更新、authorized_atを記録
+            Firestore --> CloudFunctions: status更新完了
+            CloudFunctions -> MailService: 別のCloud Functionsがトリガーされ「注文受付完了」メール自動送信
+            MailService --> CloudFunctions: メール送信完了
+            CloudFunctions -> StatusApp: 注文完了通知 (status.htmlへ遷移)
+            StatusApp --> Visitor: 「調理を開始しました」と表示
+        else 与信確保失敗の場合
+            CloudFunctions -> Firestore: 該当注文ドキュメントのstatusを'auth_failed'に更新
+            Firestore --> CloudFunctions: status更新完了
+            CloudFunctions --> PayApp: エラーを返す
+            PayApp -> Visitor: エラーメッセージ表示
+        end
+    end
+end
+
+== 3. 有人POSレジ (POS) ==
+group 有人POSレジ - 目的: 高齢者や複雑な注文対応
+
+    group 未払い注文の登録
+        Visitor -> POSStaff: 口頭で注文を伝える
+        POSStaff -> POSApp: pos.htmlが表示された端末で注文内容を素早く入力、注文確定
+        POSApp -> CloudFunctions: createPosOrder を呼び出す (処理実行)
+        CloudFunctions -> Firestore: counters/pos[端末番号]から受付番号生成 (100/200番台)
+        Firestore --> CloudFunctions: 受付番号 (例: 1XX) を返す
+        CloudFunctions -> CloudFunctions: createOrderFromPos (注文情報を送信)
+        CloudFunctions -> Firestore: orders コレクションにドキュメント作成 (status: 'unpaid_at_pos')、created_atを記録 (決済や与信確保は行わない)
+        Firestore --> CloudFunctions: ドキュメント作成完了
+        CloudFunctions --> POSApp: 受付番号を返す
+    end
+
+    group 受付番号の伝達
+        POSApp -> POSStaff: 受付番号を表示
+        POSStaff -> Visitor: 受付番号を小さな紙に書き、「こちらの番号でお待ちください」と手渡す
+    end
+end
+
+== 4. 改訂版：共通オペレーションフロー (調理から提供まで) ==
+group 調理から提供までの共通フロー
+
+    group フェーズ1: 準備完了から呼び出しまで (全注文共通)
+        KitchenStaff -> KitchenDisplay: 該当注文の「調理完了」ボタンを押す
+        KitchenDisplay -> CloudFunctions: (トリガー)
+        CloudFunctions -> Firestore: 注文ステータスを `ready_to_serve` に更新
+
+        PresenterStaff -> PresenterDisplay: `ready_to_serve`の注文を見て最終準備
+        PresenterStaff -> PresenterDisplay: 「提供準備完了」ボタンを押す
+        PresenterDisplay -> CloudFunctions: (トリガー)
+        CloudFunctions -> Firestore: 注文ステータスを `ready_for_pickup` に更新\n**ready_for_pickup_at** にタイムスタンプを記録
+
+        group 自動一斉通知 (ready_for_pickupへの更新をトリガー)
+            Firestore -> MonitorDisplay: 受付番号を「お呼び出し中」として強調表示\n合成音声アナウンス「XXX番のお客様...」を再生
+            alt オンライン注文の場合
+                Firestore -> StatusApp: 「商品の準備ができました。15分以内に...」とリアルタイム更新
+                CloudFunctions -> MailService: 「【南陵祭】ご注文の準備ができました」メールを自動送信
+                opt Web Push通知を許可済みの場合
+                    CloudFunctions -> FCM: 「ご注文の準備ができました！」プッシュ通知を送信
+                end
+            end
+        end
+        Visitor -> PresenterStaff: 通知を見て提供口へ向かう
+    end
+
+    group フェーズ2: 商品提供と決済 (来場者がモニターで操作)
+        alt オンライン注文の場合 (モバイルオーダー/SOK)
+            Visitor -> MonitorDisplay: 自分の受付番号をタップ
+            MonitorDisplay -> Visitor: 「安全のため、もう一度ご自身の受付番号を入力してください」と表示
+            Visitor -> MonitorDisplay: 受付番号を入力 (認証)
+            MonitorDisplay -> Visitor: 「ご注文内容：〇〇 合計〇〇円｜この内容で決済を確定する」ボタンを表示
+            Visitor -> MonitorDisplay: 決済確定ボタンを押す
+            MonitorDisplay -> CloudFunctions: (トリガー)
+            CloudFunctions -> AuPayAPI: **「売上確定(Capture)」**リクエストを送信
+
+            alt 決済成功
+                AuPayAPI --> CloudFunctions: 決済成功レスポンス
+                CloudFunctions -> Firestore: 注文ステータスを `completed_online` に更新
+                Firestore -> MonitorDisplay: 「決済が完了しました。ありがとうございます！」と表示
+                PresenterStaff -> Visitor: 画面を確認し、商品を渡す
+            else 決済失敗
+                AuPayAPI --> CloudFunctions: 決済失敗レスポンス
+                CloudFunctions -> MonitorDisplay: 「決済に失敗しました。右のQRコードか現金でお支払いください。」と表示
+                note over Visitor, PresenterStaff: 来場者が代替決済(QR/現金)を実行
+                PresenterStaff -> PresenterDisplay: **「緊急完了(手動決済)」ボタン**を押す
+                PresenterDisplay -> CloudFunctions: (トリガー)
+                CloudFunctions -> Firestore: 注文ステータスを手動で `completed_at_store` に更新
+                PresenterStaff -> Visitor: 代替決済を確認後、商品を渡す
+            end
+
+        else 有人POS注文の場合
+            Visitor -> MonitorDisplay: 自分の受付番号をタップ
+            MonitorDisplay -> Visitor: 「お会計は〇〇円です。右のQRコード、または現金でお支払いください。」と表示
+            
+            alt QRコードで支払う場合
+                Visitor -> "店舗設置のQR": QRをスキャンし、金額入力・決済実行
+                Visitor -> PresenterStaff: スマホの完了画面を提示
+                PresenterStaff -> PresenterDisplay: **「QR支払い完了」ボタン**を押す
+            else 現金で支払う場合
+                Visitor -> PresenterStaff: 現金を渡す
+                PresenterStaff -> PresenterDisplay: **「現金支払い完了」ボタン**を押す
+            end
+
+            PresenterDisplay -> CloudFunctions: (いずれかのボタン押下をトリガー)
+            CloudFunctions -> Firestore: 注文ステータスを `completed_at_store` に更新
+            PresenterStaff -> Visitor: 商品を渡す
+            MonitorDisplay -> MonitorDisplay: 注文番号一覧画面に自動で戻る
+        end
+    end
+end
+
+== 5. 15分放置ペナルティ自動実行フロー ==
+group ペナルティ自動実行フロー
+    loop 1分ごとに自動起動
+        group ステップ1: 監視対象の自動スキャンと判定
+            Scheduler -> Firestore: ペナルティ対象の注文をクエリ
+            note right of Scheduler
+                クエリ条件:
+                1. status == 'ready_for_pickup'
+                2. 現在時刻 - ready_for_pickup_at > 15分
+            end note
+        end
+        
+        opt 対象注文が見つかった場合
+            Firestore --> Scheduler: ペナルティ対象の注文データを返す
+            
+            group ステップ2: ペナルティ実行シーケンス
+                Scheduler -> AuPayAPI: **「売上確定(Capture)」リクエストを強制実行**
+                AuPayAPI --> Scheduler: 決済確定レスポンス
+                Scheduler -> Firestore: 注文ステータスを `abandoned_and_paid` (放棄・決済済) に更新
+                Scheduler -> Firestore: 注文のユーザーIDを `banned_users` コレクションに記録
+            end
+
+            group ステップ3: 事後処理
+                Scheduler -> MailService: BAN最終通告メールを自動送信\n(「規約違反により商品を廃棄、決済を確定し、アカウントを永久BANしました」)
+            end
+        else 対象注文なし
+            Scheduler -> Scheduler: 静かに終了し、次の起動を待つ
+        end
+    end
+end
+
+== 6. 後日: BANされたユーザーの防御メカニズム ==
+group BANユーザーログイン防御
+    group ログイン試行時
+        Visitor -> FirebaseAuth: Googleアカウントでログイン試行
+        FirebaseAuth --> "Application Logic": 認証成功、ユーザーIDを渡す
+        "Application Logic" -> Firestore: `banned_users`コレクションに自身のユーザーIDが存在するか照会
+        
+        alt ユーザーIDがBANリストに存在する場合
+            Firestore --> "Application Logic": 存在する
+            "Application Logic" -> Visitor: 「あなたのアカウントは利用が制限されています。」エラーを表示し、ログインを中断
+        else ユーザーIDがBANリストに存在しない場合
+            Firestore --> "Application Logic": 存在しない
+            "Application Logic" -> Visitor: ログインを許可し、通常のサービス利用へ
+        end
+    end
+end
+@enduml

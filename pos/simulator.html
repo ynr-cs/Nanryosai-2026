@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>注文シミュレーター | POS開発ツール</title>
+    <!-- Bootstrap 5 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding-top: 20px;
+      }
+      .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+      }
+      .console-log {
+        background: #212529;
+        color: #00ff41;
+        font-family: "Courier New", Courier, monospace;
+        padding: 15px;
+        border-radius: 5px;
+        height: 300px;
+        overflow-y: auto;
+        font-size: 0.9rem;
+      }
+      .log-entry {
+        margin-bottom: 5px;
+        border-bottom: 1px solid #333;
+        padding-bottom: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" style="max-width: 800px">
+      <div class="text-center mb-4">
+        <h1>🛠️ Order Simulator (v2)</h1>
+        <p class="text-muted">
+          モバイルオーダー・SOK（券売機）の注文データを生成します。
+        </p>
+      </div>
+
+      <!-- 認証セクション -->
+      <div id="auth-section" class="card p-4 mb-4 text-center">
+        <h4>開発者ログイン</h4>
+        <p>Firestoreへの書き込みには認証が必要です。</p>
+        <button id="login-btn" class="btn btn-dark w-50 mx-auto">
+          Googleでログイン
+        </button>
+        <p id="auth-status" class="mt-2 text-danger"></p>
+      </div>
+
+      <!-- メイン操作パネル (ログイン後表示) -->
+      <div id="main-panel" style="display: none">
+        <!-- 設定エリア -->
+        <div class="card p-4 mb-4">
+          <h5 class="card-title">⚙️ 基本設定</h5>
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <label for="storeIdInput" class="col-form-label fw-bold"
+                >Store ID:</label
+              >
+            </div>
+            <div class="col-auto">
+              <input
+                type="text"
+                id="storeIdInput"
+                class="form-control"
+                value="101"
+                style="width: 100px; text-align: center"
+              />
+            </div>
+            <div class="col">
+              <span class="text-muted small"
+                >※対象の店舗IDを指定してください</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- アクションボタンエリア -->
+        <div class="row g-3 mb-4">
+          <!-- ボタンA: モバイルオーダー -->
+          <div class="col-md-6">
+            <div class="card h-100 border-primary">
+              <div class="card-header bg-primary text-white fw-bold">
+                📱 モバイルオーダー (Online)
+              </div>
+              <div class="card-body">
+                <p class="card-text small">
+                  スマホ注文・オンライン決済済。<br />
+                  <code>status: authorized</code><br />
+                  <code>payment: online</code>
+                </p>
+                <button
+                  class="btn btn-primary w-100 action-btn"
+                  data-type="mobile"
+                >
+                  モバイル注文を発行
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ボタンB: SOK (修正済み) -->
+          <div class="col-md-6">
+            <div class="card h-100 border-warning">
+              <div class="card-header bg-warning text-dark fw-bold">
+                🎰 SOK / 券売機 (Kiosk)
+              </div>
+              <div class="card-body">
+                <p class="card-text small">
+                  券売機注文・支払済。<br />
+                  <code>status: authorized</code> (修正済)<br />
+                  <code>payment: kiosk</code>
+                </p>
+                <button
+                  class="btn btn-warning w-100 action-btn"
+                  data-type="sok"
+                >
+                  SOK注文を発行
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ログエリア -->
+        <div class="card">
+          <div
+            class="card-header d-flex justify-content-between align-items-center"
+          >
+            <span>📟 実行ログ</span>
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              onclick="document.getElementById('console').innerHTML=''"
+            >
+              クリア
+            </button>
+          </div>
+          <div id="console" class="console-log">
+            <div class="text-muted">
+              // 準備完了。注文ボタンを押してください...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      // --- Firebase Import ---
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+      import {
+        getAuth,
+        GoogleAuthProvider,
+        signInWithPopup,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        serverTimestamp,
+      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+      import {
+        getFunctions,
+        httpsCallable,
+      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+
+      // --- Firebase Configuration ---
+      const firebaseConfig = {
+        apiKey: "AIzaSyA-Ijkbo-9rgrNKbDlRJ-rQVYdSXR_a9Do",
+        authDomain: "nanryosai-2026-a4091.firebaseapp.com",
+        projectId: "nanryosai-2026-a4091",
+        storageBucket: "nanryosai-2026-a4091.appspot.com",
+        messagingSenderId: "93228414556",
+        appId: "1:93228414556:web:f64f90c13849fae9049899",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const functions = getFunctions(app);
+
+      const authSection = document.getElementById("auth-section");
+      const mainPanel = document.getElementById("main-panel");
+      const loginBtn = document.getElementById("login-btn");
+      const authStatus = document.getElementById("auth-status");
+      const consoleDiv = document.getElementById("console");
+      const storeIdInput = document.getElementById("storeIdInput");
+      const actionBtns = document.querySelectorAll(".action-btn");
+
+      loginBtn.addEventListener("click", async () => {
+        try {
+          await signInWithPopup(auth, new GoogleAuthProvider());
+        } catch (e) {
+          authStatus.textContent = "ログインエラー: " + e.message;
+        }
+      });
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          authSection.style.display = "none";
+          mainPanel.style.display = "block";
+          log(`ログインしました: ${user.email}`);
+        } else {
+          authSection.style.display = "block";
+          mainPanel.style.display = "none";
+        }
+      });
+
+      actionBtns.forEach((btn) => {
+        btn.addEventListener("click", () =>
+          handleOrderCreate(btn.dataset.type)
+        );
+      });
+
+      async function handleOrderCreate(type) {
+        const storeId = storeIdInput.value;
+        if (!storeId) return alert("Store IDを入力してください");
+
+        setLoading(true);
+        log(
+          `処理開始: ${
+            type === "mobile" ? "モバイルオーダー" : "SOK注文"
+          }を作成中...`
+        );
+
+        try {
+          const getNextReceiptNumber = httpsCallable(
+            functions,
+            "getNextReceiptNumber"
+          );
+          const result = await getNextReceiptNumber({ storeId: storeId });
+          const receiptNumber = result.data.receiptNumber;
+
+          const orderData = createOrderData(type, storeId, receiptNumber);
+
+          const docRef = await addDoc(collection(db, "orders"), orderData);
+
+          log(`✅ 注文作成成功! DocID: ${docRef.id}`, "text-success fw-bold");
+          log(
+            `詳細: No.${receiptNumber} / Pay:${orderData.paymentMethod} / Status:${orderData.status}`
+          );
+        } catch (error) {
+          console.error(error);
+          log(`❌ エラー発生: ${error.message}`, "text-danger fw-bold");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function createOrderData(type, storeId, receiptNumber) {
+        const isYakisoba = Math.random() > 0.5;
+        // POSと見分けやすいように、商品名に【SOK】などをつけておくのも手ですが、
+        // 今回はシンプルにランダム生成します。
+        const itemName = isYakisoba
+          ? "【テスト】ソース焼きそば"
+          : "【テスト】フランクフルト";
+        const itemPrice = isYakisoba ? 400 : 250;
+
+        const items = [
+          { name: itemName, price: itemPrice, quantity: 1, customizations: [] },
+        ];
+        const totalPrice = items.reduce((s, i) => s + i.price, 0);
+
+        const baseOrder = {
+          storeId: storeId,
+          receiptNumber: receiptNumber,
+          createdAt: serverTimestamp(),
+          items: items,
+          totalPrice: totalPrice,
+        };
+
+        if (type === "mobile") {
+          return {
+            ...baseOrder,
+            status: "authorized", // 調理待ち
+            paymentMethod: "online", // オンライン
+            isPrepaid: true,
+          };
+        } else {
+          // SOK (Self Order Kiosk) - 修正：支払済として発行
+          return {
+            ...baseOrder,
+            status: "authorized", // ★調理待ち (ここをunpaidから変更しました)
+            paymentMethod: "kiosk", // 券売機
+            isPrepaid: true, // ★支払済
+          };
+        }
+      }
+
+      function log(message, className = "") {
+        const time = new Date().toLocaleTimeString();
+        const div = document.createElement("div");
+        div.className = `log-entry ${className}`;
+        div.innerHTML = `<span class="text-muted">[${time}]</span> ${message}`;
+        consoleDiv.insertBefore(div, consoleDiv.firstChild);
+      }
+
+      function setLoading(isLoading) {
+        actionBtns.forEach((btn) => {
+          btn.disabled = isLoading;
+          btn.style.opacity = isLoading ? 0.6 : 1;
+          btn.style.cursor = isLoading ? "wait" : "pointer";
+        });
+      }
+    </script>
+  </body>
+</html>
