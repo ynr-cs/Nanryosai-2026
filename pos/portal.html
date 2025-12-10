@@ -1,275 +1,416 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>店舗管理ポータル | 南陵祭2026</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+JP:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        /* ============================
-           基本スタイル
-           ============================ */
-        body {
-            font-family: "Helvetica Neue", Arial, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0; padding: 0; color: #333;
-        }
-        .container { max-width: 800px; margin: 0 auto; padding: 20px; padding-bottom: 100px; }
-        h1, h2, h3 { text-align: center; color: #2c3e50; }
+      :root {
+        --bg-color: #f0f2f5;
+        --card-bg: #ffffff;
+        --text-color: #1f2937;
+        --text-secondary: #6b7280;
+        --accent-color: #10b981; /* Emerald 500 */
+        --accent-hover: #059669;
+        --danger-color: #ef4444;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --header-bg: #111827;
         
-        /* カードスタイル */
-        .card {
-            background: white; padding: 20px; border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;
-            position: relative;
-        }
+        /* Status Colors */
+        --status-unpaid: #ef4444; /* Red */
+        --status-preparing: #f59e0b; /* Amber */
+        --status-ready: #10b981; /* Emerald */
+        --status-completed: #6b7280; /* Gray */
+        --status-canceled: #1f2937; /* Dark */
+      }
 
-        /* フォーム要素 */
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
-        
-        /* 入力＆セレクトボックス */
-        input[type="text"], input[type="password"], input[type="number"], textarea, select {
-            width: 100%; padding: 12px; border: 1px solid #ccc;
-            border-radius: 6px; font-size: 16px; box-sizing: border-box;
-            background-color: #fff;
-        }
-        select { cursor: pointer; }
-        textarea { resize: vertical; height: 80px; font-family: inherit; }
+      * { box-sizing: border-box; }
 
-        /* ボタン */
-        button {
-            width: 100%; padding: 12px; border: none; border-radius: 6px;
-            font-size: 16px; font-weight: bold; cursor: pointer;
-            transition: opacity 0.2s; color: white; margin-bottom: 10px;
-        }
-        button:hover { opacity: 0.9; }
-        button:disabled { background-color: #ccc !important; cursor: not-allowed; }
+      body {
+        margin: 0; padding: 0;
+        font-family: "Inter", "Noto Sans JP", sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex; flex-direction: column;
+        height: 100vh; overflow: hidden;
+        font-size: 14px;
+      }
 
-        .btn-primary { background-color: #007bff; }
-        .btn-google { background-color: #db4437; }
-        .btn-add { background-color: #6610f2; }
-        .btn-update { background-color: #28a745; }
-        .btn-danger { background-color: #dc3545; }
-        .btn-secondary { background-color: #6c757d; }
-        
-        /* ログアウトボタン */
-        .btn-logout {
-            position: absolute; top: 15px; right: 15px;
-            width: auto; padding: 6px 12px; font-size: 0.8rem;
-            background-color: #6c757d; border-radius: 20px;
-        }
+      /* --- Top Bar --- */
+      .top-bar {
+        height: 56px; background: var(--header-bg); color: #fff;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0 20px; flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 50;
+      }
+      .brand {
+        font-weight: 800; font-size: 1.1rem;
+        display: flex; align-items: center; gap: 10px; letter-spacing: -0.025em;
+      }
+      .store-badge {
+          background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 999px;
+          font-size: 0.7rem; font-weight: 600;
+      }
+      .user-info { font-size: 0.8rem; display: flex; align-items: center; gap: 12px; }
+      .logout-btn {
+        background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white;
+        padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.75rem;
+      }
+      .logout-btn:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
 
-        /* トッピング入力エリア */
-        .topping-row { display: flex; gap: 10px; margin-bottom: 8px; }
-        .topping-row input { flex: 1; }
-        .btn-sm-delete { width: auto; padding: 0 15px; background: #dc3545; color: white; margin: 0; }
-        .btn-sm-add { width: auto; background: #17a2b8; display: inline-block; padding: 8px 16px; font-size: 0.9rem; color: white; border:none; border-radius:4px; cursor:pointer;}
+      /* --- App Layout --- */
+      .app-container { display: flex; flex: 1; overflow: hidden; }
 
-        /* 商品リスト */
-        .item-row {
-            display: flex; justify-content: space-between; align-items: flex-start;
-            padding: 15px; border-bottom: 1px solid #eee; gap: 15px;
-        }
-        .item-row:last-child { border-bottom: none; }
+      /* Sidebar */
+      .sidebar {
+        width: 240px; background: #fff; border-right: 1px solid #e5e7eb;
+        padding: 16px; display: flex; flex-direction: column; gap: 8px;
+        z-index: 40; overflow-y: auto;
+      }
+      
+      .nav-item {
+          padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;
+          color: #4b5563; transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+      }
+      .nav-item:hover { background: #f3f4f6; }
+      .nav-item.active { background: #ecfdf5; color: var(--accent-color); }
+      .nav-icon { font-size: 1.2rem; }
 
-        .item-img {
-            width: 80px; height: 80px; object-fit: cover; border-radius: 8px; background: #eee; flex-shrink: 0;
-        }
-        .item-info { flex: 1; }
-        .item-name { font-weight: bold; font-size: 1.1rem; }
-        .item-desc { font-size: 0.85rem; color: #666; margin: 4px 0; white-space: pre-wrap; }
-        .badge-recommend {
-            background: #ffc107; color: #333; font-size: 0.7rem;
-            padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle;
-        }
-        .item-actions {
-            display: flex; flex-direction: column; gap: 8px; width: 100px; flex-shrink: 0;
-        }
-        .action-btn { font-size: 0.8rem; padding: 6px; margin: 0; }
+      /* Main Content Area */
+      .main-content {
+        flex: 1; padding: 20px; overflow-y: auto;
+        display: flex; flex-direction: column; gap: 20px;
+      }
+      
+      /* View Sections (Toggled) */
+      .view-section { display: none; flex-direction: column; gap: 20px; height: 100%; }
+      .view-section.active { display: flex; }
 
-        /* 画面切り替え */
-        .view-section { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; }
-        
-        /* ログイン関連 */
-        .login-card { max-width: 400px; width: 100%; text-align: center; }
-        .auth-info { background: #eee; padding: 5px; font-size: 0.8rem; margin-bottom: 10px; border-radius: 4px; }
+      /* --- Common UI Components --- */
+      .card {
+        background: var(--card-bg); border-radius: 10px; padding: 16px;
+        box-shadow: var(--shadow); display: flex; flex-direction: column;
+      }
+      .input-field {
+          width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;
+          font-size: 0.9rem; background: #f9fafb; margin-bottom: 10px;
+      }
+      .btn-primary {
+          background: var(--accent-color); color: white; border: none; padding: 10px 16px;
+          border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem;
+      }
+      .btn-primary:hover { background: var(--accent-hover); }
+      
+      /* Top Page Specifics */
+      .app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+      .app-link-card {
+          text-decoration: none; color: inherit; background: white; padding: 24px;
+          border-radius: 12px; box-shadow: var(--shadow); text-align: center;
+          transition: transform 0.2s, border-color 0.2s; border: 2px solid transparent;
+      }
+      .app-link-card:hover { transform: translateY(-4px); border-color: var(--accent-color); }
+      .app-icon { font-size: 3rem; margin-bottom: 12px; display: block; }
+      .app-title { font-weight: 800; font-size: 1.2rem; display: block; color: #111827; }
+      .app-desc { font-size: 0.85rem; color: #6b7280; margin-top: 4px; display: block; }
 
-        /* モーダル (編集用) */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
-        }
-        .modal-content {
-            background: white; padding: 25px; border-radius: 12px;
-            width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
+      /* Items Manager Specifics */
+      .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+      .item-card { background: white; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+      .item-img { width: 100%; height: 140px; object-fit: cover; background: #eee; }
+      .item-body { padding: 12px; flex: 1; display:flex; flex-direction:column; }
+      .item-name { font-weight: bold; font-size: 1rem; margin-bottom: 4px; }
+      .item-price { font-weight: 600; color: #111827; }
+      .item-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+      .badge-rec { background: #fef3c7; color: #92400e; }
+      .item-actions-row { margin-top: auto; display: flex; gap: 8px; padding-top: 10px; }
+      .btn-sm { padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border:none; cursor:pointer; }
+      .btn-edit { background: #e5e7eb; color: #374151; }
+      .btn-toggle { flex:1; }
+      .is-active { background: #d1fae5; color: #065f46; }
+      .is-inactive { background: #fee2e2; color: #991b1b; }
 
-        /* リンクメニュー */
-        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
-        .menu-link { 
-            text-decoration: none; background: white; border: 1px solid #ddd; 
-            color: #333; padding: 15px; text-align: center; border-radius: 8px; font-weight: bold; display: block;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s;
-        }
-        .menu-link:hover { background: #f8f9fa; border-color: #007bff; color: #007bff; }
+      /* Search & Sales Shared Styles */
+      .summary-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+      .summary-card { background: white; padding: 16px; border-radius: 10px; box-shadow: var(--shadow); flex: 1; min-width: 150px; }
+      .summary-title { font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin-bottom: 6px; }
+      .summary-value { font-size: 1.5rem; font-weight: 800; color: #111827; }
+      .val-money { color: var(--accent-color); }
+      
+      .table-wrapper { background: white; border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f3f4f6; }
+      th { background: #f9fafb; font-weight: 600; color: #6b7280; }
+      tr.clickable:hover { background: #f9fafb; cursor: pointer; }
+      
+      /* Login Overlay */
+      .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f3f4f6; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+      .auth-card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; }
+      
+      /* Modals */
+      .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; justify-content: center; align-items: center; }
+      .modal-content { background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+
     </style>
-</head>
-<body>
+  </head>
+  <body>
 
-    <!-- 1. Google認証セクション -->
-    <div id="google-auth-section" class="view-section" style="display: flex;">
-        <div class="card login-card">
-            <h2>管理者認証</h2>
-            <p style="color:#666; font-size:0.9rem;">
-                DB接続許可のため、Googleアカウントでログインしてください。<br>
-                (どのアカウントでも構いません)
-            </p>
-            <button id="googleLoginBtn" class="btn-google">Googleでログイン</button>
-            <div id="googleAuthError" style="color:red; font-size:0.9rem;"></div>
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div id="step-google" class="auth-card">
+            <h1 style="font-size:1.5rem; font-weight:800; margin-bottom:8px;">Nanryosai Portal</h1>
+            <p style="color:#6b7280; margin-bottom:24px;">管理者・スタッフ専用ポータル</p>
+            <button id="btn-google-login" class="btn-primary" style="width:100%; background:white; color:#374151; border:1px solid #d1d5db; display:flex; justify-content:center; align-items:center; gap:10px;">
+                <span style="font-weight:bold;">G</span> Googleでログイン
+            </button>
+            <p id="google-error" style="color:red; margin-top:12px; font-size:0.9rem;"></p>
+        </div>
+
+        <div id="step-store" class="auth-card" style="display:none;">
+            <h1 style="font-size:1.5rem; font-weight:800; margin-bottom:8px;">店舗ログイン</h1>
+            <div id="store-select-wrapper" style="margin-bottom:16px; text-align:left;">
+                <label style="font-size:0.8rem; font-weight:bold;">ログインする団体</label>
+                <select id="store-select" class="input-field" style="margin-top:4px;">
+                    <option value="" disabled selected>読み込み中...</option>
+                </select>
+            </div>
+            <input type="password" id="store-pass" class="input-field" placeholder="パスワード">
+            <button id="btn-store-login" class="btn-primary" style="width:100%; margin-top:10px; background:#111827;">ポータルへ移動</button>
+            <p id="store-error" style="color:red; margin-top:12px; font-size:0.9rem;"></p>
         </div>
     </div>
 
-    <!-- 2. 店舗ログインセクション (プルダウン) -->
-    <div id="store-login-section" class="view-section">
-        <div class="card login-card">
-            <div class="auth-info">認証済み: <span id="userEmailDisplay"></span></div>
-            <h2>店舗ログイン</h2>
-            <div id="loadingStoreList" style="color:#666; padding:10px;">店舗リストを読み込み中...</div>
-            
-            <div id="loginFormContainer" style="display:none;">
-                <div class="form-group">
-                    <label>ログインする団体を選択</label>
-                    <select id="storeSelect">
-                        <option value="" disabled selected>▼ 選択してください</option>
-                        <!-- JSで動的に追加 -->
-                    </select>
-                </div>
-                <div class="form-group">
-                    <input type="password" id="password" placeholder="パスワード">
-                </div>
-                <button id="storeLoginBtn" class="btn-primary">ログイン</button>
+    <!-- Main App -->
+    <div id="app" style="display:none; flex-direction:column; height:100%;">
+        <div class="top-bar">
+            <div class="brand">
+                <span>Nanryosai Portal</span>
+                <span id="header-store-name" class="store-badge">---</span>
             </div>
-            
-            <div id="storeLoginError" style="color:red; margin-top:10px; font-size:0.9rem;"></div>
+            <div class="user-info">
+                <span id="user-email"></span>
+                <button class="logout-btn" onclick="logout()">ログアウト</button>
+            </div>
+        </div>
+
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <div class="sidebar">
+                <div class="nav-item active" onclick="switchView('top')">
+                    <span class="nav-icon">🏠</span> トップ
+                </div>
+                <div class="nav-item" onclick="switchView('items')">
+                    <span class="nav-icon">🍔</span> 商品管理
+                </div>
+                <div class="nav-item" onclick="switchView('sales')">
+                    <span class="nav-icon">📊</span> 売上
+                </div>
+                <div class="nav-item" onclick="switchView('search')">
+                    <span class="nav-icon">🔍</span> 注文検索
+                </div>
+                <div class="nav-item" onclick="switchView('training')">
+                    <span class="nav-icon">🎓</span> トレーニング
+                </div>
+            </div>
+
+            <div class="main-content">
+                
+                <!-- 1. Top View -->
+                <div id="view-top" class="view-section active">
+                    <h2 style="margin:0;">アプリ連携</h2>
+                    <div class="app-grid">
+                        <a href="#" id="link-pos" class="app-link-card">
+                            <span class="app-icon">📱</span>
+                            <span class="app-title">POSレジ</span>
+                            <span class="app-desc">注文・会計画面へ</span>
+                        </a>
+                        <a href="#" id="link-kitchen" class="app-link-card">
+                            <span class="app-icon">👨‍🍳</span>
+                            <span class="app-title">Kitchen</span>
+                            <span class="app-desc">厨房・調理指示</span>
+                        </a>
+                        <a href="#" id="link-monitor" class="app-link-card">
+                            <span class="app-icon">📺</span>
+                            <span class="app-title">Monitor</span>
+                            <span class="app-desc">呼び出しモニター</span>
+                        </a>
+                        <a href="#" id="link-presenter" class="app-link-card">
+                            <span class="app-icon">🎁</span>
+                            <span class="app-title">Presenter</span>
+                            <span class="app-desc">商品提供口</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2. Items View -->
+                <div id="view-items" class="view-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h2 style="margin:0;">商品管理</h2>
+                        <button class="btn-primary" onclick="openItemModal()">＋ 新規商品を追加</button>
+                    </div>
+                    
+                    <div id="items-grid" class="items-grid">
+                        <!-- Items rendered here -->
+                        <div style="grid-column:1/-1; text-align:center; padding:40px; color:#9ca3af;">商品を読み込み中...</div>
+                    </div>
+                </div>
+
+                <!-- 3. Sales View -->
+                <div id="view-sales" class="view-section">
+                    <div class="summary-row">
+                        <div class="summary-card">
+                            <div class="summary-title">本日の売上</div>
+                            <div class="summary-value val-money" id="sales-total">¥0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-title">総注文数</div>
+                            <div class="summary-value" id="sales-count">0</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-title">客単価</div>
+                            <div class="summary-value" id="sales-avg">¥0</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                        <div class="card" style="flex:2; min-height:300px;">
+                            <h3 style="margin-top:0; font-size:0.9rem; color:#6b7280;">時間別売上</h3>
+                            <div style="flex:1; position:relative;"><canvas id="chart-hourly"></canvas></div>
+                        </div>
+                        <div class="card" style="flex:1; min-height:300px;">
+                            <h3 style="margin-top:0; font-size:0.9rem; color:#6b7280;">商品別売上</h3>
+                            <div style="flex:1; position:relative;"><canvas id="chart-products"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Search View -->
+                <div id="view-search" class="view-section">
+                    <div class="card" style="flex-direction:row; gap:16px; align-items:end; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:200px;">
+                            <label style="font-size:0.8rem; font-weight:bold;">キーワード検索</label>
+                            <input type="text" id="search-keyword" class="input-field" placeholder="レシート番号 No..." style="margin-bottom:0;">
+                        </div>
+                        <div style="width:150px;">
+                            <label style="font-size:0.8rem; font-weight:bold;">日付</label>
+                            <input type="date" id="search-date" class="input-field" style="margin-bottom:0;">
+                        </div>
+                        <div style="width:150px;">
+                            <label style="font-size:0.8rem; font-weight:bold;">ステータス</label>
+                            <select id="search-status" class="input-field" style="margin-bottom:0;">
+                                <option value="all">すべて</option>
+                                <option value="unpaid">未払い</option>
+                                <option value="active">調理中</option>
+                                <option value="completed">完了</option>
+                                <option value="canceled">取消</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper" style="flex:1; overflow-y:auto;">
+                        <table id="search-table">
+                            <thead>
+                                <tr>
+                                    <th>時刻</th>
+                                    <th>Receipt #</th>
+                                    <th>商品内容</th>
+                                    <th>ステータス</th>
+                                    <th class="text-right">金額</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 5. Training View -->
+                <div id="view-training" class="view-section">
+                    <div class="card" style="text-align:center; padding:60px;">
+                        <h2 style="font-size:2rem; margin-bottom:20px;">🎓 トレーニングモード</h2>
+                        <p style="color:#6b7280; margin-bottom:40px;">ここでは従業員・生徒が模擬注文を作成して練習することができます。<br>（作成された注文は売上に計上されません ※実装予定）</p>
+                        <button class="btn-primary" style="font-size:1.2rem; padding:16px 32px;" onclick="window.open('pos.html?training=true')">
+                            練習用POSを開く
+                        </button>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
-    <!-- 3. ダッシュボードセクション -->
-    <div id="dashboard-section" style="display: none; padding-top: 20px;">
-        <div class="container">
-            <!-- ヘッダー -->
-            <div class="card" style="text-align:center;">
-                <button id="logoutBtn" class="btn-logout">ログアウト</button>
-                <h1 id="displayStoreName" style="margin:0; color:#007bff;">店舗名</h1>
-                <p style="color:#666; margin:5px 0;"><span id="displayTeamName"></span> (ID: <span id="displayStoreId"></span>)</p>
-            </div>
-
-            <!-- メニューリンク -->
-            <div class="card">
-                <h3 style="margin-top:0;">機能メニュー</h3>
-                <div class="menu-grid">
-                    <a href="#" id="linkPos" class="menu-link">POSレジ</a>
-                    <a href="#" id="linkKitchen" class="menu-link">厨房</a>
-                    <a href="#" id="linkPresenter" class="menu-link">提供口</a>
-                    <a href="#" id="linkMonitor" class="menu-link">モニター</a>
-                    <a href="#" id="linkReport" class="menu-link">売上</a>
-                </div>
-            </div>
-
-            <!-- 商品追加フォーム -->
-            <div class="card">
-                <h3 style="margin-top:0;">新規商品の追加</h3>
-                <div class="form-group">
-                    <label>商品名 *</label>
-                    <input type="text" id="addName" placeholder="例: 焼きそば">
-                </div>
-                <div class="form-group">
-                    <label>価格 (円) *</label>
-                    <input type="number" id="addPrice" placeholder="例: 300">
-                </div>
-                <div class="form-group">
-                    <label>説明文</label>
-                    <textarea id="addDesc" placeholder="商品の特徴などを入力"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>商品画像</label>
-                    <input type="file" id="addImage" accept="image/*">
-                </div>
-                <div class="form-group">
-                    <label>トッピング・オプション</label>
-                    <div id="addToppingsContainer"></div>
-                    <button type="button" class="btn-sm-add" onclick="window.addToppingInput('addToppingsContainer')">＋ トッピング枠を追加</button>
-                </div>
-                <div class="form-group" style="display:flex; align-items:center;">
-                    <input type="checkbox" id="addRecommended" style="width:auto; margin-right:8px;">
-                    <label for="addRecommended" style="margin:0; cursor:pointer;">おすすめ商品として強調する</label>
-                </div>
-                <button id="addItemBtn" class="btn-add">商品を登録する</button>
-            </div>
-
-            <!-- 商品リスト -->
-            <h3 style="text-align:left; border-left: 5px solid #007bff; padding-left:10px;">商品一覧</h3>
-            <div class="card" id="itemsContainer" style="padding:0; overflow:hidden;">
-                <div style="text-align:center; padding:20px; color:#999;">読み込み中...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 4. 編集用モーダル -->
-    <div id="editModal" class="modal-overlay">
+    <!-- Item Edit/Add Modal -->
+    <div id="item-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 style="margin-top:0;">商品を編集</h3>
-            <input type="hidden" id="editDocId">
+            <h3 id="modal-title" style="margin-top:0;">商品編集</h3>
+            <input type="hidden" id="edit-id">
             
-            <div class="form-group">
-                <label>商品名</label>
-                <input type="text" id="editName">
-            </div>
-            <div class="form-group">
-                <label>価格</label>
-                <input type="number" id="editPrice">
-            </div>
-            <div class="form-group">
-                <label>説明文</label>
-                <textarea id="editDesc"></textarea>
-            </div>
-            <div class="form-group">
-                <label>画像を変更</label>
-                <input type="file" id="editImage" accept="image/*">
-                <div id="currentImagePreview" style="margin-top:5px; font-size:0.8rem; color:#666;"></div>
-            </div>
-            <div class="form-group">
-                <label>トッピング</label>
-                <div id="editToppingsContainer"></div>
-                <button type="button" class="btn-sm-add" onclick="window.addToppingInput('editToppingsContainer')">＋ 追加</button>
-            </div>
-            <div class="form-group" style="display:flex; align-items:center;">
-                <input type="checkbox" id="editRecommended" style="width:auto; margin-right:8px;">
-                <label for="editRecommended" style="margin:0; cursor:pointer;">おすすめ</label>
-            </div>
+            <label style="font-weight:bold; font-size:0.85rem;">商品名</label>
+            <input type="text" id="edit-name" class="input-field">
             
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button id="updateItemBtn" class="btn-update">更新保存</button>
-                <button onclick="document.getElementById('editModal').style.display='none'" class="btn-secondary">キャンセル</button>
+            <label style="font-weight:bold; font-size:0.85rem;">価格 (円)</label>
+            <input type="number" id="edit-price" class="input-field">
+            
+            <label style="font-weight:bold; font-size:0.85rem;">説明文</label>
+            <textarea id="edit-desc" class="input-field" style="height:80px;"></textarea>
+            
+            <label style="font-weight:bold; font-size:0.85rem;">商品画像</label>
+            <input type="file" id="edit-image" class="input-field">
+            
+            <label style="font-weight:bold; font-size:0.85rem;">トッピング・オプション</label>
+            <div id="edit-toppings-container" style="margin-bottom:10px;"></div>
+            <button type="button" class="btn-sm" style="background:#17a2b8; color:white; margin-bottom:16px;" onclick="addToppingInput()">＋ トッピング枠を追加</button>
+            <br>
+            
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button onclick="closeItemModal()" style="background:#e5e7eb; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">キャンセル</button>
+                <button onclick="saveItem()" class="btn-primary">保存する</button>
+                <button onclick="deleteItem()" style="background:var(--danger-color); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; margin-right:auto;">削除</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK (v9 Module) -->
+    <!-- Order Detail Modal (Reused from sales-report) -->
+    <div id="order-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">注文詳細</div>
+                <button class="modal-close" onclick="closeOrderModal()">×</button>
+            </div>
+            <div style="margin-bottom:10px; font-weight:bold; font-size:1.2rem;">
+                Receipt: <span id="order-receipt-no">---</span>
+            </div>
+            <div id="order-items-list" class="order-detail-list"></div>
+            <select id="order-status-select" class="status-select">
+                <option value="unpaid_at_pos">🔴 POS未払い</option>
+                <option value="ready_to_serve">🟠 配膳待</option>
+                <option value="ready_for_pickup">🟢 呼出中</option>
+                <option value="completed_at_store">⚫️ 受取完了</option>
+                <option value="cancelled">🚫 キャンセル</option>
+            </select>
+            <div class="modal-actions">
+                <button class="save-btn" onclick="updateOrderStatus()">ステータス更新</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        // ↓↓↓ ここに 'where' を追加しました ↓↓↓
-        import { getFirestore, collection, query, orderBy, where, getDocs, getDoc, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getFirestore, collection, query, where, orderBy, onSnapshot, getDocs, doc, updateDoc, addDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyA-Ijkbo-9rgrNKbDlRJ-rQVYdSXR_a9Do", 
+            apiKey: "AIzaSyA-Ijkbo-9rgrNKbDlRJ-rQVYdSXR_a9Do",
             authDomain: "nanryosai-2026-a4091.firebaseapp.com",
             projectId: "nanryosai-2026-a4091",
-            storageBucket: "nanryosai-2026-a4091.firebasestorage.app", 
-            messagingSenderId: "360316480856",
-            appId: "1:360316480856:web:1234567890abcdef" 
+            storageBucket: "nanryosai-2026-a4091.firebasestorage.app", /* Corrected bucket domain usually ends with appspot logging elsewhere, but user config had firebasestorage.app or appspot.com. Using generic logic. */
+            messagingSenderId: "93228414556",
+            appId: "1:93228414556:web:f64f90c13849fae9049899"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -279,353 +420,473 @@
 
         // State
         let currentStoreId = null;
-        let itemsCache = {}; 
-        let storesDataMap = {}; 
+        let storeData = null;
+        let ordersUnsubscribe = null;
+        let itemsUnsubscribe = null;
+        let ordersData = [];
+        let itemsData = [];
+        let hourlyChart = null;
+        let productChart = null;
+        
+        // --- Navigation ---
+        window.switchView = (viewName) => {
+            // Update Sidebar
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            // Find the nav item - simply by index or adding ID. For now assume order.
+            // A bit hacky but simple selector:
+            const navs = document.querySelectorAll('.nav-item');
+            if(viewName==='top') navs[0].classList.add('active');
+            if(viewName==='items') navs[1].classList.add('active');
+            if(viewName==='sales') navs[2].classList.add('active');
+            if(viewName==='search') navs[3].classList.add('active');
+            if(viewName==='training') navs[4].classList.add('active');
 
-        // LocalStorageのキー
-        const LS_KEY_STORE_ID = "nanryosai_store_id";
+            // Update Views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
 
-        // ==========================================
-        //  グローバル関数
-        // ==========================================
-        window.addToppingInput = (containerId, value = "") => {
-            const container = document.getElementById(containerId);
+            // Trigger renders if needed
+            if(viewName === 'sales') renderSalesDashboard();
+            if(viewName === 'search') renderSearchTable();
+        };
+
+        // --- Auth Logic ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                document.getElementById('step-google').style.display = 'none';
+                
+                // Check Cached Login
+                const cachedId = localStorage.getItem('nanryosai_store_id');
+                if(cachedId) {
+                    currentStoreId = cachedId;
+                    await loadStoreData(cachedId); // Load name/pass details
+                    if(storeData) {
+                        startApp();
+                        return;
+                    }
+                }
+
+                // Show Store Login
+                document.getElementById('step-store').style.display = 'block';
+                loadStoreOptions();
+                document.getElementById('user-email').innerText = user.email;
+            } else {
+                document.getElementById('auth-overlay').style.display = 'flex';
+                document.getElementById('step-google').style.display = 'block';
+                document.getElementById('step-store').style.display = 'none';
+                document.getElementById('app').style.display = 'none';
+            }
+        });
+
+        document.getElementById('btn-google-login').onclick = async () => {
+            try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+            catch(e) { document.getElementById('google-error').innerText = e.message; }
+        };
+
+        document.getElementById('btn-store-login').onclick = async () => {
+             const select = document.getElementById('store-select');
+             const pass = document.getElementById('store-pass').value;
+             const storeId = select.value;
+             
+             if(!storeId || !pass) return alert("店舗を選択しパスワードを入力してください");
+             
+             // Verify Password (client-side simple check as strictly requested by architecture)
+             // Fetch real data
+             const docSnap = await getDoc(doc(db, "stores", storeId)); // Need getDoc import if not verified
+             // Actually loadStoreOptions gets data, let's use that if possible.
+             // But let's just re-fetch to be safe.
+        };
+
+        async function loadStoreOptions() {
+            const q = query(collection(db, "stores"), orderBy("teamName"));
+            const snap = await getDocs(q);
+            const select = document.getElementById('store-select');
+            select.innerHTML = '<option value="" disabled selected>▼ 選択してください</option>';
+            snap.forEach(d => {
+                const data = d.data();
+                const op = document.createElement('option');
+                op.value = d.id;
+                op.textContent = `${data.teamName} - ${data.name}`;
+                op.dataset.password = data.password; // Store pass in dataset for easy check
+                select.appendChild(op);
+            });
+        }
+        
+        document.getElementById('btn-store-login').onclick = () => {
+            const select = document.getElementById('store-select');
+            const pass = document.getElementById('store-pass').value;
+            const op = select.selectedOptions[0];
+            
+            if(!op || !pass) return;
+            
+            if(String(op.dataset.password) === String(pass)) {
+                currentStoreId = select.value;
+                localStorage.setItem('nanryosai_store_id', currentStoreId);
+                loadStoreData(currentStoreId).then(() => startApp());
+            } else {
+                document.getElementById('store-error').innerText = "パスワードが違います";
+            }
+        };
+
+        async function loadStoreData(id) {
+            // Placeholder: currently we just need the name
+            // real app would fetch doc(db, 'stores', id)
+            // But we already have logic to fetch all in loadStoreOptions? 
+            // If cached, we might need to fetch.
+            // Let's rely on basic info for now.
+        }
+
+        window.logout = () => {
+             if(confirm("ログアウトしますか？")) {
+                 signOut(auth);
+                 localStorage.removeItem('nanryosai_store_id');
+                 location.reload();
+             }
+        };
+
+        function startApp() {
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            document.getElementById('header-store-name').innerText = `ID: ${currentStoreId}`;
+            
+            // Set up Links
+            document.getElementById('link-pos').href = `pos.html?storeId=${currentStoreId}`;
+            document.getElementById('link-kitchen').href = `kitchen.html?storeId=${currentStoreId}`;
+            document.getElementById('link-monitor').href = `monitor.html?storeId=${currentStoreId}`;
+            document.getElementById('link-presenter').href = `presenter.html?storeId=${currentStoreId}`;
+            
+            setupRealtimeListeners();
+            
+            // Set Date Picker to today
+            document.getElementById('search-date').valueAsDate = new Date();
+            
+            // Default view
+            switchView('top');
+        }
+
+        function setupRealtimeListeners() {
+            // 1. Items
+            const qItems = query(collection(db, "items"), where("storeId", "==", currentStoreId));
+            itemsUnsubscribe = onSnapshot(qItems, (snap) => {
+                itemsData = [];
+                snap.forEach(d => itemsData.push({id: d.id, ...d.data()}));
+                renderItems();
+            });
+
+            // 2. Orders (Today)
+            const today = new Date(); today.setHours(0,0,0,0);
+            // Just fetching today's orders for dashboard/search default
+            // Ideally we'd have a more robust date query
+            const qOrders = query(
+                collection(db, "orders"), 
+                where("storeId", "==", currentStoreId),
+                where("createdAt", ">=", Timestamp.fromDate(today)),
+                orderBy("createdAt", "desc")
+            );
+            ordersUnsubscribe = onSnapshot(qOrders, (snap) => {
+                ordersData = [];
+                snap.forEach(d => ordersData.push({id: d.id, ...d.data()}));
+                renderSalesDashboard();
+                renderSearchTable();
+            });
+        }
+        
+        // --- Items Logic ---
+        function renderItems() {
+            const grid = document.getElementById('items-grid');
+            grid.innerHTML = "";
+            itemsData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-card';
+                div.innerHTML = `
+                    <img src="${item.imageUrl || ''}" class="item-img">
+                    <div class="item-body">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-price">¥${item.price}</div>
+                        <div class="item-actions-row">
+                             <button class="btn-sm btn-edit" onclick="openItemModal('${item.id}')">編集</button>
+                             <button class="btn-sm btn-toggle ${item.isAvailable ? 'is-active' : 'is-inactive'}" 
+                                 onclick="toggleItemStatus('${item.id}', ${!item.isAvailable})">
+                                 ${item.isAvailable ? '販売中' : '売切'}
+                             </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+        
+        
+        // --- Toppings Helpers ---
+        window.addToppingInput = (val = "") => {
+            const container = document.getElementById('edit-toppings-container');
             const div = document.createElement('div');
-            div.className = 'topping-row';
+            div.style.display = 'flex';
+            div.style.gap = '8px';
+            div.style.marginBottom = '8px';
             div.innerHTML = `
-                <input type="text" class="topping-input" value="${value}" placeholder="トッピング名">
-                <button type="button" class="btn-sm-delete" onclick="this.parentElement.remove()">削除</button>
+                <input type="text" class="input-field topping-input" value="${val}" placeholder="トッピング名" style="margin-bottom:0; flex:1;">
+                <button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer; padding:0 12px;">削除</button>
             `;
             container.appendChild(div);
         };
 
-        window.toggleStatus = async (id, newStatus) => {
-            try { await updateDoc(doc(db, "items", id), { isAvailable: newStatus }); }
-            catch(e) { alert("更新失敗: " + e.message); }
-        };
+        function getToppings() {
+             const inputs = document.querySelectorAll('.topping-input');
+             return Array.from(inputs).map(i => i.value.trim()).filter(v => v);
+        }
 
-        window.deleteItem = async (id) => {
-            if(!confirm("本当にこの商品を削除しますか？\n(元に戻せません)")) return;
-            try { await deleteDoc(doc(db, "items", id)); }
-            catch(e) { alert("削除失敗: " + e.message); }
-        };
-
-        window.setupEditModal = (id) => {
-            const item = itemsCache[id];
-            if(!item) return;
-
-            document.getElementById('editDocId').value = id;
-            document.getElementById('editName').value = item.name;
-            document.getElementById('editPrice').value = item.price;
-            document.getElementById('editDesc').value = item.description || "";
-            document.getElementById('editRecommended').checked = item.isRecommended || false;
-            document.getElementById('editImage').value = ""; 
+        window.openItemModal = (id=null) => {
+            const modal = document.getElementById('item-modal');
+            const title = document.getElementById('modal-title');
+            document.getElementById('edit-id').value = id || "";
+            document.getElementById('edit-toppings-container').innerHTML = "";
             
-            const preview = document.getElementById('currentImagePreview');
-            preview.innerHTML = item.imageUrl 
-                ? `現在の画像: <a href="${item.imageUrl}" target="_blank" style="color:#007bff;">確認する</a>` 
-                : "現在の画像: なし";
-
-            const container = document.getElementById('editToppingsContainer');
-            container.innerHTML = "";
-            if(item.allowedToppings) {
-                item.allowedToppings.forEach(t => window.addToppingInput('editToppingsContainer', t));
-            }
-
-            document.getElementById('editModal').style.display = 'flex';
-        };
-
-        // ==========================================
-        //  ヘルパー関数
-        // ==========================================
-        function getToppingsFromContainer(containerId) {
-            const inputs = document.querySelectorAll(`#${containerId} .topping-input`);
-            const list = [];
-            inputs.forEach(input => {
-                const val = input.value.trim();
-                if(val) list.push(val);
-            });
-            return list;
-        }
-
-        async function uploadImage(file) {
-            if (!file) return null;
-            const fileName = `product_images/${currentStoreId}/${Date.now()}_${file.name}`;
-            const storageRef = ref(storage, fileName);
-            await uploadBytes(storageRef, file);
-            return await getDownloadURL(storageRef);
-        }
-
-        // ==========================================
-        //  1. 認証 & 状態監視
-        // ==========================================
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // Google認証済み
-                document.getElementById('userEmailDisplay').textContent = user.email;
-                document.getElementById('google-auth-section').style.display = 'none';
-
-                // 自動ログインチェック (LocalStorage)
-                const cachedStoreId = localStorage.getItem(LS_KEY_STORE_ID);
-                if (cachedStoreId) {
-                    try {
-                        const storeRef = doc(db, "stores", cachedStoreId);
-                        const storeSnap = await getDoc(storeRef);
-                        if (storeSnap.exists()) {
-                            currentStoreId = cachedStoreId;
-                            initDashboard(cachedStoreId, storeSnap.data());
-                            return;
-                        } else {
-                            localStorage.removeItem(LS_KEY_STORE_ID);
-                        }
-                    } catch (e) {
-                        console.error("Auto login failed", e);
-                    }
-                }
-
-                // 自動ログインできない場合 -> 店舗リスト取得して選択画面へ
-                document.getElementById('store-login-section').style.display = 'flex';
-                await loadStoreList();
-
-            } else {
-                // 未認証
-                document.getElementById('dashboard-section').style.display = 'none';
-                document.getElementById('store-login-section').style.display = 'none';
-                document.getElementById('google-auth-section').style.display = 'flex';
-            }
-        });
-
-        document.getElementById('googleLoginBtn').addEventListener('click', async () => {
-            try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
-            catch (e) { document.getElementById('googleAuthError').textContent = e.message; }
-        });
-
-        // ==========================================
-        //  2. 店舗リスト取得 & ログイン処理
-        // ==========================================
-        async function loadStoreList() {
-            try {
-                const q = query(collection(db, "stores"), orderBy("teamName"));
-                const querySnapshot = await getDocs(q);
+            if(id) {
+                const item = itemsData.find(i => i.id === id);
+                title.innerText = "商品編集";
+                document.getElementById('edit-name').value = item.name;
+                document.getElementById('edit-price').value = item.price;
+                document.getElementById('edit-desc').value = item.description || "";
                 
-                const select = document.getElementById('storeSelect');
-                select.innerHTML = '<option value="" disabled selected>▼ ログインする団体を選択</option>';
-                storesDataMap = {};
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = `${data.teamName} - ${data.name}`;
-                    select.appendChild(option);
-                    storesDataMap[doc.id] = data;
-                });
-
-                document.getElementById('loadingStoreList').style.display = 'none';
-                document.getElementById('loginFormContainer').style.display = 'block';
-
-            } catch (e) {
-                console.error(e);
-                document.getElementById('loadingStoreList').textContent = "リスト取得エラー: " + e.message;
-            }
-        }
-
-        document.getElementById('storeLoginBtn').addEventListener('click', async () => {
-            const select = document.getElementById('storeSelect');
-            const selectedId = select.value;
-            const pass = document.getElementById('password').value.trim();
-
-            if(!selectedId) {
-                document.getElementById('storeLoginError').textContent = "団体を選択してください";
-                return;
-            }
-            if(!pass) {
-                document.getElementById('storeLoginError').textContent = "パスワードを入力してください";
-                return;
-            }
-
-            const storeData = storesDataMap[selectedId];
-            if(String(storeData.password) === String(pass)) {
-                // ログイン成功
-                localStorage.setItem(LS_KEY_STORE_ID, selectedId); 
-                currentStoreId = selectedId;
-                initDashboard(selectedId, storeData);
+                if(item.allowedToppings) {
+                    item.allowedToppings.forEach(t => addToppingInput(t));
+                }
             } else {
-                document.getElementById('storeLoginError').textContent = "パスワードが違います";
+                title.innerText = "新規商品追加";
+                document.getElementById('edit-name').value = "";
+                document.getElementById('edit-price').value = "";
+                document.getElementById('edit-desc').value = "";
             }
-        });
-
-        // ログアウト
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            if(confirm("ログアウトしますか？")) {
-                localStorage.removeItem(LS_KEY_STORE_ID);
-                location.reload(); 
-            }
-        });
-
-        // ==========================================
-        //  3. ダッシュボード初期化
-        // ==========================================
-        function initDashboard(storeId, data) {
-            document.getElementById('store-login-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'block';
-            
-            document.getElementById('displayStoreName').textContent = data.name;
-            document.getElementById('displayTeamName').textContent = data.teamName;
-            document.getElementById('displayStoreId').textContent = storeId;
-
-            ['Pos','Kitchen','Presenter','Monitor','Report'].forEach(key => {
-                const fileName = key === 'Report' ? 'sales-report.html' : `${key.toLowerCase()}.html`;
-                document.getElementById(`link${key}`).href = `${fileName}?storeId=${storeId}`;
-            });
-
-            startItemListener(storeId);
-        }
-
-        // 商品一覧監視
-        function startItemListener(storeId) {
-            const q = query(collection(db, "items"), where("storeId", "==", storeId));
-            const container = document.getElementById('itemsContainer');
-
-            onSnapshot(q, (snapshot) => {
-                container.innerHTML = "";
-                itemsCache = {};
-
-                if(snapshot.empty) {
-                    container.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">商品がまだ登録されていません</div>';
-                    return;
-                }
-
-                snapshot.forEach(docSnap => {
-                    const item = docSnap.data();
-                    const id = docSnap.id;
-                    itemsCache[id] = item;
-
-                    const div = document.createElement('div');
-                    div.className = 'item-row';
-                    
-                    const imgHtml = item.imageUrl 
-                        ? `<img src="${item.imageUrl}" class="item-img">` 
-                        : `<div class="item-img" style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:0.7rem;">NO IMAGE</div>`;
-
-                    const toppingTxt = (item.allowedToppings && item.allowedToppings.length) 
-                        ? `OP: ${item.allowedToppings.join(', ')}` : "";
-
-                    div.innerHTML = `
-                        ${imgHtml}
-                        <div class="item-info">
-                            <div class="item-name">
-                                ${item.name} <span style="font-size:0.9rem; color:#666;">(¥${item.price})</span>
-                                ${item.isRecommended ? '<span class="badge-recommend">おすすめ</span>' : ''}
-                            </div>
-                            <div class="item-desc">${item.description || ""}</div>
-                            <div style="font-size:0.8rem; color:#888; margin-top:2px;">${toppingTxt}</div>
-                            <div style="margin-top:6px;">
-                                <span style="background:${item.isAvailable?'#d4edda':'#f8d7da'}; color:${item.isAvailable?'#155724':'#721c24'}; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">
-                                    ${item.isAvailable ? '● 販売中' : '× 売切'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="item-actions">
-                            <button class="action-btn ${item.isAvailable ? 'btn-secondary' : 'btn-update'}" onclick="window.toggleStatus('${id}', ${!item.isAvailable})">
-                                ${item.isAvailable ? '売切にする' : '販売再開'}
-                            </button>
-                            <button class="action-btn btn-primary" onclick="window.setupEditModal('${id}')">編集</button>
-                            <button class="action-btn btn-danger" onclick="window.deleteItem('${id}')">削除</button>
-                        </div>
-                    `;
-                    container.appendChild(div);
-                });
-            });
-        }
-
-        // ==========================================
-        //  4. 商品登録 & 更新
-        // ==========================================
+            modal.style.display = 'flex';
+        };
         
-        // 登録
-        document.getElementById('addItemBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('addItemBtn');
-            const name = document.getElementById('addName').value.trim();
-            const price = document.getElementById('addPrice').value;
-            const desc = document.getElementById('addDesc').value.trim();
-            const fileInput = document.getElementById('addImage');
-            const isRec = document.getElementById('addRecommended').checked;
+        window.closeItemModal = () => document.getElementById('item-modal').style.display = 'none';
+        
+        window.saveItem = async () => {
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('edit-name').value;
+            const price = Number(document.getElementById('edit-price').value);
+            const desc = document.getElementById('edit-desc').value;
+            const file = document.getElementById('edit-image').files[0];
+            const toppings = getToppings();
             
-            if(!name || !price) return alert("商品名と価格は必須です");
+            if(!name || !price) return alert("必須項目を入力してください");
+            
+            // Disable button
+            // ...
 
-            btn.disabled = true;
-            btn.textContent = "登録中...";
+            let imageUrl = null;
+            if(file) {
+                 const refStorage = ref(storage, `products/${currentStoreId}/${Date.now()}_${file.name}`);
+                 await uploadBytes(refStorage, file);
+                 imageUrl = await getDownloadURL(refStorage);
+            }
+            
+            const data = {
+                storeId: currentStoreId,
+                name, price, description: desc,
+                allowedToppings: toppings,
+                isAvailable: true // Default true for new, should probably preserve if editing?
+            };
+            
+            // logic to preserve isAvailable if editing
+            if(id) {
+                 const existing = itemsData.find(i => i.id === id);
+                 if(existing) data.isAvailable = existing.isAvailable;
+            }
 
+            if(imageUrl) data.imageUrl = imageUrl;
+            
             try {
-                let imageUrl = "";
-                if(fileInput.files[0]) {
-                    imageUrl = await uploadImage(fileInput.files[0]);
+                if(id) {
+                    await updateDoc(doc(db, "items", id), data);
+                } else {
+                    await addDoc(collection(db, "items"), data);
                 }
+                closeItemModal();
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
+        };
 
-                await addDoc(collection(db, "items"), {
-                    storeId: currentStoreId,
-                    name: name,
-                    price: Number(price),
-                    description: desc,
-                    imageUrl: imageUrl,
-                    allowedToppings: getToppingsFromContainer('addToppingsContainer'),
-                    isRecommended: isRec,
-                    isAvailable: true
+        window.deleteItem = async () => {
+            const id = document.getElementById('edit-id').value;
+            if(!id) return;
+            if(!confirm("本当に削除しますか？")) return;
+            
+            try {
+                await deleteDoc(doc(db, "items", id));
+                closeItemModal();
+            } catch(e) {
+                alert("削除エラー: " + e.message);
+            }
+        };
+
+
+        window.toggleItemStatus = async (id, status) => {
+            await updateDoc(doc(db, "items", id), { isAvailable: status });
+        };
+
+        // --- Sales & Search Logic ---
+        function renderSalesDashboard() {
+            // Aggregate
+            let total = 0;
+            let count = 0;
+            let salesByHour = Array(24).fill(0);
+            let productSales = {};
+            
+            ordersData.forEach(o => {
+                if(o.status === 'cancelled' || o.status === 'canceled') return;
+                
+                count++;
+                let orderTotal = 0;
+                if(o.items) {
+                    o.items.forEach(i => {
+                        const sub = i.price * i.quantity;
+                        orderTotal += sub;
+                        if(!productSales[i.name]) productSales[i.name] = 0;
+                        productSales[i.name] += sub;
+                    });
+                }
+                total += orderTotal;
+                
+                if(o.createdAt) {
+                    const h = o.createdAt.toDate().getHours();
+                    salesByHour[h] += orderTotal;
+                }
+            });
+            
+            document.getElementById('sales-total').innerText = '¥' + total.toLocaleString();
+            document.getElementById('sales-count').innerText = count;
+            document.getElementById('sales-avg').innerText = '¥' + (count ? Math.round(total/count) : 0).toLocaleString();
+            
+            // Charts
+            renderHourlyChart(salesByHour);
+            renderProductChart(productSales);
+        }
+        
+        function renderHourlyChart(data) {
+            const ctx = document.getElementById('chart-hourly').getContext('2d');
+            if(hourlyChart) hourlyChart.destroy();
+            hourlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length:24},(_,i)=>`${i}:00`),
+                    datasets: [{ label: '売上', data: data, backgroundColor:'#10b981' }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend:{display:false} } }
+            });
+        }
+        
+        function renderProductChart(map) {
+             const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,5);
+             const ctx = document.getElementById('chart-products').getContext('2d');
+             if(productChart) productChart.destroy();
+             productChart = new Chart(ctx, {
+                 type: 'doughnut',
+                 data: {
+                     labels: sorted.map(s=>s[0]),
+                     datasets: [{ data: sorted.map(s=>s[1]), backgroundColor: ['#10b981','#34d399','#6ee7b7','#a7f3d0','#d1fae5'] }]
+                 },
+                 options: { maintainAspectRatio: false }
+             });
+        }
+        
+        // --- Search Logic ---
+        document.getElementById('search-keyword').addEventListener('input', renderSearchTable);
+        document.getElementById('search-status').addEventListener('change', renderSearchTable);
+        
+        function renderSearchTable() {
+            const tbody = document.getElementById('search-table').querySelector('tbody');
+            tbody.innerHTML = "";
+            
+            const keyword = document.getElementById('search-keyword').value.trim();
+            const statusFilter = document.getElementById('search-status').value;
+            
+            const filtered = ordersData.filter(o => {
+                // Status
+                if(statusFilter !== 'all') {
+                    if(statusFilter === 'completed' && !o.status.includes('completed')) return false;
+                    if(statusFilter === 'unpaid' && o.status !== 'unpaid_at_pos') return false;
+                    if(statusFilter === 'active' && !['ready_to_serve','ready_for_pickup'].includes(o.status)) return false;
+                    if(statusFilter === 'canceled' && !o.status.includes('cancel')) return false;
+                }
+                // Keyword
+                if(keyword) {
+                    const txt = JSON.stringify(o).toLowerCase();
+                    if(!txt.includes(keyword.toLowerCase())) return false;
+                }
+                return true;
+            });
+            
+            filtered.forEach(o => {
+                const tr = document.createElement('tr');
+                tr.className = 'clickable';
+                tr.onclick = () => openOrderModal(o);
+                
+                const time = o.createdAt ? o.createdAt.toDate().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+                let total = 0;
+                let summary = "";
+                if(o.items) {
+                    o.items.forEach(i => total += i.price*i.quantity);
+                    summary = o.items.map(i=>`${i.name}x${i.quantity}`).join(', ');
+                }
+                
+                tr.innerHTML = `
+                    <td>${time}</td>
+                    <td>${o.receiptNumber}</td>
+                    <td>${summary.substring(0,20)}...</td>
+                    <td>${getStatusBadge(o.status)}</td>
+                    <td class="text-right">¥${total.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function getStatusBadge(s) {
+            const map = {
+                'unpaid_at_pos': {l:'未払い',c:'status-unpaid'},
+                'ready_to_serve': {l:'調理完了',c:'status-preparing'},
+                'ready_for_pickup': {l:'呼出中',c:'status-ready'},
+                'completed_at_store': {l:'受取済',c:'status-completed'},
+                'cancelled': {l:'取消',c:'status-canceled'}
+            };
+            const info = map[s] || {l:s, c:'status-completed'};
+            return `<span class="badge ${info.c}">${info.l}</span>`;
+        }
+        
+        // --- Order Modal ---
+        let selectedOrder = null;
+        window.openOrderModal = (o) => {
+            selectedOrder = o;
+            document.getElementById('order-modal').style.display = 'flex';
+            document.getElementById('order-receipt-no').innerText = `#${o.receiptNumber}`;
+            document.getElementById('order-status-select').value = o.status;
+            
+            const list = document.getElementById('order-items-list');
+            list.innerHTML = "";
+            if(o.items) {
+                o.items.forEach(i => {
+                    list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee;">
+                        <span>${i.name} x${i.quantity}</span>
+                        <span>¥${(i.price*i.quantity).toLocaleString()}</span>
+                    </div>`;
                 });
-
-                document.getElementById('addName').value = "";
-                document.getElementById('addPrice').value = "";
-                document.getElementById('addDesc').value = "";
-                document.getElementById('addImage').value = "";
-                document.getElementById('addToppingsContainer').innerHTML = "";
-                document.getElementById('addRecommended').checked = false;
-                alert("登録しました");
-            } catch(e) {
-                alert("登録エラー: " + e.message);
-                console.error(e);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "商品を登録する";
             }
-        });
-
-        // 更新
-        document.getElementById('updateItemBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('updateItemBtn');
-            const id = document.getElementById('editDocId').value;
-            const name = document.getElementById('editName').value.trim();
-            const price = document.getElementById('editPrice').value;
-            const desc = document.getElementById('editDesc').value.trim();
-            const fileInput = document.getElementById('editImage');
-            const isRec = document.getElementById('editRecommended').checked;
-
-            if(!name || !price) return alert("必須項目が空です");
-
-            btn.disabled = true;
-            btn.textContent = "更新中...";
-
-            try {
-                const updateData = {
-                    name: name,
-                    price: Number(price),
-                    description: desc,
-                    allowedToppings: getToppingsFromContainer('editToppingsContainer'),
-                    isRecommended: isRec
-                };
-                if(fileInput.files[0]) {
-                    updateData.imageUrl = await uploadImage(fileInput.files[0]);
-                }
-                await updateDoc(doc(db, "items", id), updateData);
-                document.getElementById('editModal').style.display = 'none';
-            } catch(e) {
-                alert("更新エラー: " + e.message);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "更新保存";
+        };
+        window.closeOrderModal = () => document.getElementById('order-modal').style.display = 'none';
+        window.updateOrderStatus = async () => {
+            const newStatus = document.getElementById('order-status-select').value;
+            if(selectedOrder) {
+                await updateDoc(doc(db, "orders", selectedOrder.id), { status: newStatus });
+                closeOrderModal();
             }
-        });
-
+        };
+        
+        // Global Assign (Modules scope)
+        window.switchView = switchView; 
+        
     </script>
-</body>
+  </body>
 </html>

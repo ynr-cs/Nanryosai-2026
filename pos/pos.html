@@ -822,6 +822,20 @@
 
       const urlParams = new URLSearchParams(window.location.search);
       storeId = urlParams.get("storeId");
+      const isTraining = urlParams.get("training") === "true";
+
+      if (isTraining) {
+        document.body.style.border = "8px solid #ff9800";
+        const banner = document.createElement("div");
+        banner.innerHTML = "⚠️ トレーニングモード (注文は保存されますが売上には計上されません)";
+        banner.style.background = "#ff9800";
+        banner.style.color = "white";
+        banner.style.textAlign = "center";
+        banner.style.padding = "10px";
+        banner.style.fontWeight = "bold";
+        banner.style.flexShrink = "0";
+        document.body.prepend(banner);
+      }
 
       // Loader
       function showLoader(text = "処理中...") {
@@ -1233,6 +1247,7 @@
             createdAt: serverTimestamp(),
             receiptNumber: receiptNumber,
             storeId: storeId,
+            isTraining: isTraining, // Training Flag
           };
 
           await addDoc(collection(db, "orders"), orderData);
