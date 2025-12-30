@@ -32,55 +32,47 @@
 
     <style>
       :root {
-        --primary-color: #333;
-        --accent-color: #d32f2f; /* Warning Red */
-        --bg-color: #f8f9fa;
+        --primary-color: #1a1a1a;   /* Deep Premium Black */
+        --accent-color: #e53935;    /* Vibrant Red */
+        --brand-color: #ff9800;     /* Warm Orange for Call to Actions */
+        --bg-color: #f0f2f5;        /* Modern App Background */
         --card-bg: #ffffff;
-        --text-main: #212529;
-        --text-sub: #6c757d;
-        --radius-lg: 16px;
-        --radius-md: 12px;
-        --radius-sm: 8px;
-        --font-main: "Noto Sans JP", sans-serif;
+        --text-main: #2d3436;
+        --text-sub: #636e72;
+        --radius-lg: 20px;
+        --radius-md: 16px;          /* More rounded */
+        --radius-sm: 10px;
+        --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.08); /* Deep diffusion */
+        --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);  /* Crisp card shadow */
+        --font-main: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       }
 
       body {
-        background-color: var(--bg-color);
+        background-color: #e9ecef; /* Browser bg outside app */
         color: var(--text-main);
         font-family: var(--font-main);
         margin: 0;
-        min-height: 100vh;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
         -webkit-tap-highlight-color: transparent;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
 
       /* --- Layout Container --- */
       #app-container {
         width: 100%;
         max-width: 480px;
-        /* Mobile: fill screen, PC: fixed height handled by scaling */
-        height: 100vh; /* Fixed height for app-like feeling */
-        overflow: hidden; /* No outer scroll */
-        background: #fff;
+        height: 100vh;
+        overflow: hidden;
+        background: var(--bg-color); /* Light gray background to pop cards */
         position: relative;
-        z-index: 2000; /* Ensure app is above bootstrap backdrop */
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        z-index: 2000;
+        box-shadow: var(--shadow-soft);
         display: flex;
         flex-direction: column;
-      }
-
-      /* Wrapper for centering and scaling on PC */
-      body {
-        background-color: var(--bg-color);
-        color: var(--text-main);
-        font-family: var(--font-main);
-        margin: 0;
-        height: 100vh;
-        width: 100vw;
-        overflow: hidden; /* Hide browser scrollbar */
-        -webkit-tap-highlight-color: transparent;
-        display: flex; /* Center the app */
-        justify-content: center;
-        align-items: center;
       }
 
       /* --- Screen Management --- */
@@ -88,23 +80,17 @@
         display: none;
         flex: 1;
         flex-direction: column;
-        padding: 20px;
-        animation: fadeIn 0.3s ease-out;
-        overflow-y: auto; /* Internal scroll */
+        padding: 24px; /* Increased padding */
+        animation: fadeIn 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
       .screen.active {
         display: flex;
       }
       @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
       }
 
       /* --- Common UI Components --- */
@@ -112,20 +98,23 @@
         background: var(--primary-color);
         color: white;
         border: none;
-        padding: 15px;
-        border-radius: 50px;
-        font-weight: bold;
+        padding: 18px;
+        border-radius: var(--radius-lg);
+        font-weight: 700;
         width: 100%;
-        font-size: 1rem;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        transition: transform 0.1s;
+        font-size: 1.05rem;
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        transition: transform 0.2s, box-shadow 0.2s;
+        letter-spacing: 0.05em;
       }
       .btn-primary-custom:active:not(:disabled) {
-        transform: scale(0.98);
+        transform: scale(0.96);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       }
       .btn-primary-custom:disabled {
-        background: #ccc;
+        background: #ced4da;
         box-shadow: none;
+        cursor: not-allowed;
       }
 
       /* --- Step 1: Login --- */
@@ -181,100 +170,114 @@
 
       /* --- Step 3: Stores --- */
       .store-card {
-        background: white;
+        background: var(--card-bg);
         border-radius: var(--radius-md);
-        border: 1px solid #eee;
-        padding: 15px;
-        margin-bottom: 15px;
+        border: none; /* Removed border */
+        padding: 20px;
+        margin-bottom: 20px;
         display: flex;
         align-items: center;
-        gap: 15px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        gap: 20px;
+        box-shadow: var(--shadow-card);
         cursor: pointer;
-        transition: background 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
       }
       .store-card:active {
-        background: #f8f9fa;
+        transform: scale(0.97);
+        background: #fff;
       }
       .store-img {
-        width: 60px;
-        height: 60px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
         object-fit: cover;
         background: #eee;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); /* Subtle inner rim */
       }
       .store-info h3 {
-        font-size: 1.1rem;
-        font-weight: bold;
-        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin: 0 0 4px 0;
+        color: var(--text-main);
       }
 
       /* --- Footer/Bottom Bar (Redesigned) --- */
       .bottom-cart-bar {
         position: fixed;
-        bottom: 0;
+        bottom: 20px; /* Floating look */
         left: 50%;
         transform: translateX(-50%);
-        width: 100%;
-        max-width: 480px; /* Constrain to app width */
-        background: #212529; /* Dark background */
+        width: calc(100% - 40px); /* With margins */
+        max-width: 440px; 
+        background: rgba(33, 37, 41, 0.95); /* Semi-transparent dark */
+        backdrop-filter: blur(10px);
         color: white;
         z-index: 1050;
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-        display: none; /* Hidden by default */
+        border-radius: 100px; /* Capsule shape */
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        display: none;
         align-items: center;
-        padding-bottom: env(safe-area-inset-bottom); /* Safe area support */
+        /* Padding handled by children */
       }
 
       .cart-info-area {
         flex: 1;
-        padding: 15px;
+        padding: 15px 25px;
         cursor: pointer;
         display: flex;
         flex-direction: column;
         justify-content: center;
       }
 
-      .cart-info-area:active {
-        background: #343a40;
-      }
-
       .checkout-btn-area {
-        padding: 10px 15px 10px 0;
+        padding: 8px 8px 8px 0;
       }
 
       .btn-checkout-action {
-        background: #ffc107; /* Warning color for distinction */
-        color: #000;
-        font-weight: bold;
+        background: var(--brand-color);
+        color: white;
+        font-weight: 800;
         border: none;
-        border-radius: 8px; /* Slightly rounded button inside */
-        padding: 10px 20px;
+        border-radius: 50px;
+        padding: 12px 24px;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4); /* Glow effect */
+        transition: transform 0.1s;
       }
       .btn-checkout-action:active {
-        background: #e0a800;
+        transform: scale(0.95);
+        background: #f57c00;
       }
 
       /* --- Menu Grid --- */
       .menu-card {
-        background: white;
+        background: var(--card-bg);
         border-radius: var(--radius-md);
         overflow: hidden;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--shadow-card);
+        border: none;
         display: flex;
         flex-direction: column;
-        transition: transform 0.1s;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
       }
       .menu-card:active {
         transform: scale(0.96);
       }
       .menu-img-box {
         position: relative;
-        padding-top: 75%; /* 4:3 */
-        background: #f8f9fa;
+        padding-top: 80%; /* Slightly taller */
+        background: #f1f3f5;
+        overflow: hidden;
+      }
+      .img-loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1;
       }
       .menu-img {
         position: absolute;
@@ -283,10 +286,21 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+        opacity: 0; 
+        transition: opacity 0.4s ease;
+        z-index: 2;
+      }
+      .menu-img.loaded {
+        opacity: 1;
       }
       .menu-info {
-        padding: 10px;
+        padding: 16px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
       }
+
       .sold-out-badge {
         position: absolute;
         top: 0;
@@ -1159,27 +1173,76 @@
       window.addEventListener("resize", adjustScale);
       window.addEventListener("load", adjustScale);
 
-      // --- Image Helper ---
-      async function setProductImage(imgEl, product) {
-        // Reset to placeholder or clear
-        imgEl.src = "../images/noimage.png";
+      // --- Image Helper (Optimized) ---
+      let imageObserver;
 
-        // Priority: imageURL (Firestore field) -> Fallback to noimage
-        // Note: User specified "imageURL" but we check "imageUrl" too just in case
+      function initLazyLoader() {
+        if ("IntersectionObserver" in window) {
+          imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const imgEl = entry.target;
+                const product = JSON.parse(imgEl.dataset.product); // Retrieve product data
+                setProductImage(imgEl, product); // Actual load
+                observer.unobserve(imgEl);
+              }
+            });
+          });
+        }
+      }
+
+      function lazyLoadImage(imgEl, product) {
+        if (imageObserver) {
+           imgEl.dataset.product = JSON.stringify(product); // Store needed data
+           imageObserver.observe(imgEl);
+        } else {
+           // Fallback for old browsers
+           setProductImage(imgEl, product);
+        }
+      }
+
+      async function setProductImage(imgEl, product) {
+        // Reset state
+        imgEl.classList.remove("loaded");
+        // Find loader sibling relative to imgEl
+        const parent = imgEl.parentElement;
+        const loader = parent.querySelector(".img-loader");
+        if (loader) loader.style.display = "block";
+
+        // Define load handler
+        imgEl.onload = () => {
+          imgEl.classList.add("loaded");
+          if (loader) loader.style.display = "none";
+        };
+
         const pathOrUrl = product.imageURL || product.imageUrl;
 
         if (!pathOrUrl) {
-          // No image defined, keep placeholder
+          imgEl.src = "../images/noimage.png"; 
+          // Even for placeholder, trigger onload to show it
           return;
         }
 
+        // Cache Key (Simple Prefix)
+        const CACHE_KEY = `img_cache_${pathOrUrl}`;
+
+        // 1. Check Cache
+        const cachedUrl = sessionStorage.getItem(CACHE_KEY);
+        if (cachedUrl) {
+          imgEl.src = cachedUrl;
+          return;
+        }
+
+        // 2. Load
         if (pathOrUrl.startsWith("http") || pathOrUrl.startsWith("data:")) {
           imgEl.src = pathOrUrl;
         } else {
-          // Assume Firebase Storage path
           try {
             const url = await getDownloadURL(sRef(storage, pathOrUrl));
             imgEl.src = url;
+            try {
+               sessionStorage.setItem(CACHE_KEY, url);
+            } catch(e) {}
           } catch (e) {
             console.warn("Storage image load failed:", pathOrUrl, e);
             imgEl.src = "../images/noimage.png";
@@ -1188,6 +1251,9 @@
 
         imgEl.onerror = () => {
           imgEl.src = "../images/noimage.png";
+          // Make sure to show placeholder if error
+          imgEl.classList.add("loaded");
+          if (loader) loader.style.display = "none";
         };
       }
 
@@ -1196,6 +1262,9 @@
         const grid = document.getElementById("menu-grid");
         grid.innerHTML = '<div class="spinner-border text-primary"></div>';
         products = [];
+        
+        // Initialize Observer
+        initLazyLoader();
 
         try {
           const q = query(
@@ -1216,12 +1285,15 @@
             if (isSoldOut) el.style.opacity = "0.7";
 
             el.innerHTML = `
-                  <div class="menu-img-box">
+                  <div class="menu-img-box" style="background: #f8f9fa;">
                      ${
                        isSoldOut
                          ? '<div class="sold-out-badge"><span class="sold-out-text">SOLD OUT</span></div>'
                          : ""
                      }
+                     <div class="img-loader">
+                       <div class="spinner-border text-secondary" role="status" style="width: 2rem; height: 2rem;"></div>
+                     </div>
                      <img class="menu-img" id="img-${p.id}">
                   </div>
                   <div class="menu-info">
@@ -1230,9 +1302,9 @@
                   </div>
                `;
 
-            // Set Image Async
+            // Setup Lazy Load
             const imgEl = el.querySelector(".menu-img");
-            setProductImage(imgEl, p);
+            lazyLoadImage(imgEl, p);
 
             el.onclick = () => {
               if (!isSoldOut) openItemModal(p);
