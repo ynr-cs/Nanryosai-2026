@@ -55,14 +55,32 @@
 
       /* --- Layout Container --- */
       #app-container {
+        width: 100%;
         max-width: 480px;
-        margin: 0 auto;
+        /* Mobile: fill screen, PC: fixed height handled by scaling */
+        height: 100vh; /* Fixed height for app-like feeling */
+        overflow: hidden; /* No outer scroll */
         background: #fff;
-        min-height: 100vh;
         position: relative;
+        z-index: 2000; /* Ensure app is above bootstrap backdrop */
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
         display: flex;
         flex-direction: column;
+      }
+
+      /* Wrapper for centering and scaling on PC */
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        font-family: var(--font-main);
+        margin: 0;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden; /* Hide browser scrollbar */
+        -webkit-tap-highlight-color: transparent;
+        display: flex; /* Center the app */
+        justify-content: center;
+        align-items: center;
       }
 
       /* --- Screen Management --- */
@@ -72,6 +90,8 @@
         flex-direction: column;
         padding: 20px;
         animation: fadeIn 0.3s ease-out;
+        overflow-y: auto; /* Internal scroll */
+        -webkit-overflow-scrolling: touch;
       }
       .screen.active {
         display: flex;
@@ -448,12 +468,15 @@
       <!-- 1. Login Screen -->
       <div id="step-login" class="screen">
         <div class="login-hero">
-          <div class="login-logo">🍔</div>
-          <h1 class="fw-bold">Mobile Order</h1>
-          <p class="text-muted">南陵祭2026</p>
+          <p class="text-muted mb-2">南陵祭2026</p>
+          <h1 class="fw-bold mb-4">モバイルオーダー</h1>
+          <p class="text-muted small">
+            モバイルオーダーを使うには<br />
+            ログインして下さい
+          </p>
         </div>
         <button id="btn-login" class="btn-primary-custom">
-          <i class="bi bi-google me-2"></i> Googleでログイン
+          <i class="bi bi-google me-2"></i> Google でログイン
         </button>
       </div>
 
@@ -614,7 +637,7 @@
       </div>
 
       <!-- Bottom Cart Bar (Redesigned) -->
-      <div id="bottom-bar" class="bottom-cart-bar d-flex">
+      <div id="bottom-bar" class="bottom-cart-bar">
         <!-- Left: Cart Info (Open Cart Modal) -->
         <div class="cart-info-area" onclick="openCart()">
           <div class="small text-white-50">合計金額</div>
@@ -636,8 +659,7 @@
           </button>
         </div>
       </div>
-    </div>
-    <!-- End App Container -->
+    <!-- Moved App Container End to after modals for scaling support -->
 
     <!-- Placeholder for Modals (Implemented Later) -->
     <!-- Customization Modal (Full Screen) -->
@@ -673,11 +695,11 @@
             style="background: #f8f9fa; padding-bottom: 120px"
           >
             <!-- Product Image Area -->
-            <div class="bg-white text-center py-4 mb-3 shadow-sm">
+            <div class="bg-white text-center py-2 mb-3 shadow-sm">
               <img
                 id="modal-item-img"
                 src=""
-                style="max-width: 60%; max-height: 250px; object-fit: contain"
+                style="max-width: 60%; max-height: 200px; object-fit: contain"
               />
             </div>
 
@@ -846,6 +868,9 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- End App Container (Moved here) -->
     </div>
 
     <!-- Scripts -->
@@ -1061,7 +1086,7 @@
             const el = document.createElement("div");
             el.className = "store-card animate__animated animate__fadeInUp";
             el.innerHTML = `
-                    <img src="${imgSrc}" class="str-img" onerror="this.onerror=null;this.src='../images/noimage.png'">
+                    <img src="${imgSrc}" class="store-img" onerror="this.onerror=null;this.src='../images/noimage.png'">
                     <div class="store-info">
                        <h3>${data.name}</h3>
                        <small class="text-muted">${data.teamName || ""}</small>
@@ -1103,6 +1128,36 @@
 
         window.scrollTo(0, 0);
       }
+
+      // --- PC Scaling Logic ---
+      function adjustScale() {
+        const app = document.getElementById("app-container");
+        const isMobile = window.innerWidth <= 480;
+        
+        if (isMobile) {
+          app.style.transform = "none";
+          app.style.height = "100vh"; // Revert to fill screen
+          return;
+        }
+
+        // PC View: Scale to fit height
+        const windowH = window.innerHeight;
+        // As a base, we assume a standard mobile height, e.g., 850px, or we can use 100vh of the 'app design'
+        // But since we set #app-container to 100vh, it effectively takes current window height.
+        // Wait, if window height is small, 100vh is small. 
+        // User wants "shrink" -> implies they want to see the whole "virtual mobile screen" even if window is short?
+        // Let's force a base height for the app on PC so it looks like a phone, then scale it.
+        const baseHeight = 844; // iPhone 12 Pro height approx
+        
+        // Temporarily force height to baseHeight for calculation
+        app.style.height = `${baseHeight}px`;
+        
+        const scale = Math.min(1, (windowH - 40) / baseHeight); // 40px padding
+        app.style.transform = `scale(${scale})`;
+      }
+
+      window.addEventListener("resize", adjustScale);
+      window.addEventListener("load", adjustScale);
 
       // --- Image Helper ---
       async function setProductImage(imgEl, product) {
