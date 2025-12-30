@@ -31,20 +31,28 @@
     />
 
     <style>
+      /* =========================================
+         1. Variables & Base
+         ========================================= */
       :root {
+        /* Colors */
         --primary-color: #1a1a1a;   /* Deep Premium Black */
         --accent-color: #e53935;    /* Vibrant Red */
         --brand-color: #ff9800;     /* Warm Orange for Call to Actions */
         --bg-color: #f0f2f5;        /* Modern App Background */
         --card-bg: #ffffff;
+        
+        /* Text */
         --text-main: #2d3436;
         --text-sub: #636e72;
+        --font-main: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+        /* Dimensions & Effects */
         --radius-lg: 20px;
-        --radius-md: 16px;          /* More rounded */
+        --radius-md: 16px;
         --radius-sm: 10px;
         --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.08); /* Deep diffusion */
         --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);  /* Crisp card shadow */
-        --font-main: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       }
 
       body {
@@ -55,19 +63,21 @@
         height: 100vh;
         width: 100vw;
         overflow: hidden;
-        -webkit-tap-highlight-color: transparent;
+        -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
         display: flex;
         justify-content: center;
         align-items: center;
       }
 
-      /* --- Layout Container --- */
+      /* =========================================
+         2. App Layout Container
+         ========================================= */
       #app-container {
         width: 100%;
         max-width: 480px;
         height: 100vh;
         overflow: hidden;
-        background: var(--bg-color); /* Light gray background to pop cards */
+        background: var(--bg-color);
         position: relative;
         z-index: 2000;
         box-shadow: var(--shadow-soft);
@@ -75,12 +85,28 @@
         flex-direction: column;
       }
 
-      /* --- Screen Management --- */
+      /* Loading Overlay */
+      #global-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      /* =========================================
+         3. Screen Management
+         ========================================= */
       .screen {
         display: none;
         flex: 1;
         flex-direction: column;
-        padding: 24px; /* Increased padding */
+        padding: 24px;
         animation: fadeIn 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
@@ -93,7 +119,10 @@
         to { opacity: 1; transform: translateY(0); }
       }
 
-      /* --- Common UI Components --- */
+      /* =========================================
+         4. UI Components
+         ========================================= */
+      /* Buttons */
       .btn-primary-custom {
         background: var(--primary-color);
         color: white;
@@ -117,21 +146,126 @@
         cursor: not-allowed;
       }
 
-      /* --- Step 1: Login --- */
+      /* Store Cards */
+      .store-card {
+        background: var(--card-bg);
+        border-radius: var(--radius-md);
+        border: none;
+        padding: 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: var(--shadow-card);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .store-card:active {
+        transform: scale(0.97);
+        background: #fff;
+      }
+      .store-img {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #eee;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+      }
+      .store-info h3 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin: 0 0 4px 0;
+        color: var(--text-main);
+      }
+
+      /* Menu Cards */
+      .menu-card {
+        background: var(--card-bg);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: var(--shadow-card);
+        border: none;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+      }
+      .menu-card:active {
+        transform: scale(0.96);
+      }
+      .menu-img-box {
+        position: relative;
+        padding-top: 80%;
+        background: #f1f3f5;
+        overflow: hidden;
+      }
+      .menu-img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0; 
+        transition: opacity 0.4s ease;
+        z-index: 2;
+      }
+      .menu-img.loaded,
+      #modal-item-img.loaded {
+        opacity: 1 !important;
+      }
+      .menu-info {
+        padding: 16px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      /* Image Loader Spinner */
+      .img-loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1;
+      }
+
+      /* Badges */
+      .sold-out-badge {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .sold-out-text {
+        background: #333;
+        color: white;
+        padding: 5px 15px;
+        font-weight: 900;
+        transform: rotate(-10deg);
+      }
+
+      /* =========================================
+         5. Page Specific Styles
+         ========================================= */
+      /* Login Step */
       #step-login {
         justify-content: center;
         align-items: center;
         text-align: center;
       }
-      .login-hero {
-        margin-bottom: 40px;
-      }
-      .login-logo {
-        font-size: 3rem;
-        margin-bottom: 10px;
-      }
+      .login-hero { margin-bottom: 40px; }
+      .login-logo { font-size: 3rem; margin-bottom: 10px; }
 
-      /* --- Step 2: Terms (Warning) --- */
+      /* Terms Step */
       .terms-warning-box {
         background: #ffebee;
         border: 2px solid var(--accent-color);
@@ -155,9 +289,7 @@
         font-weight: 700;
         color: #b71c1c;
       }
-      .warning-list li {
-        margin-bottom: 10px;
-      }
+      .warning-list li { margin-bottom: 10px; }
       .ban-warning {
         font-size: 1.1em;
         background: #b71c1c;
@@ -168,160 +300,7 @@
         font-weight: 900;
       }
 
-      /* --- Step 3: Stores --- */
-      .store-card {
-        background: var(--card-bg);
-        border-radius: var(--radius-md);
-        border: none; /* Removed border */
-        padding: 20px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        box-shadow: var(--shadow-card);
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-      .store-card:active {
-        transform: scale(0.97);
-        background: #fff;
-      }
-      .store-img {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        object-fit: cover;
-        background: #eee;
-        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); /* Subtle inner rim */
-      }
-      .store-info h3 {
-        font-size: 1.15rem;
-        font-weight: 800;
-        margin: 0 0 4px 0;
-        color: var(--text-main);
-      }
-
-      /* --- Footer/Bottom Bar (Redesigned) --- */
-      .bottom-cart-bar {
-        position: fixed;
-        bottom: 20px; /* Floating look */
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 40px); /* With margins */
-        max-width: 440px; 
-        background: rgba(33, 37, 41, 0.95); /* Semi-transparent dark */
-        backdrop-filter: blur(10px);
-        color: white;
-        z-index: 1050;
-        border-radius: 100px; /* Capsule shape */
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        display: none;
-        align-items: center;
-        /* Padding handled by children */
-      }
-
-      .cart-info-area {
-        flex: 1;
-        padding: 15px 25px;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .checkout-btn-area {
-        padding: 8px 8px 8px 0;
-      }
-
-      .btn-checkout-action {
-        background: var(--brand-color);
-        color: white;
-        font-weight: 800;
-        border: none;
-        border-radius: 50px;
-        padding: 12px 24px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4); /* Glow effect */
-        transition: transform 0.1s;
-      }
-      .btn-checkout-action:active {
-        transform: scale(0.95);
-        background: #f57c00;
-      }
-
-      /* --- Menu Grid --- */
-      .menu-card {
-        background: var(--card-bg);
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        box-shadow: var(--shadow-card);
-        border: none;
-        display: flex;
-        flex-direction: column;
-        transition: transform 0.2s, box-shadow 0.2s;
-        height: 100%;
-      }
-      .menu-card:active {
-        transform: scale(0.96);
-      }
-      .menu-img-box {
-        position: relative;
-        padding-top: 80%; /* Slightly taller */
-        background: #f1f3f5;
-        overflow: hidden;
-      }
-      .img-loader {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1;
-      }
-      .menu-img {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        opacity: 0; 
-        transition: opacity 0.4s ease;
-        z-index: 2;
-      }
-      .menu-img.loaded {
-        opacity: 1;
-      }
-      .menu-info {
-        padding: 16px;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-      }
-
-      .sold-out-badge {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.7);
-        z-index: 2;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .sold-out-text {
-        background: #333;
-        color: white;
-        padding: 5px 15px;
-        font-weight: 900;
-        transform: rotate(-10deg);
-      }
-
-      /* Customization UI */
+      /* Customization / Toppings */
       .mode-toggle {
         display: flex;
         gap: 10px;
@@ -346,7 +325,6 @@
         background: #2e7d32;
         color: white;
       }
-
       .topping-list {
         display: flex;
         flex-wrap: wrap;
@@ -361,16 +339,7 @@
         font-size: 0.9rem;
         font-weight: 500;
       }
-      .topping-btn:active {
-        background: #eee;
-      }
-      .topping-btn.btn-disabled {
-        opacity: 0.4;
-        background: #f0f0f0;
-        color: #ccc;
-        border-color: #eee;
-        cursor: not-allowed;
-      }
+      .topping-btn:active { background: #eee; }
       .topping-btn.mod-selected-no {
         background: #ffebee;
         border-color: #d32f2f;
@@ -383,10 +352,9 @@
         color: #2e7d32;
         font-weight: bold;
       }
-
       .active-mods-display {
         min-height: 40px;
-        background: #fce4ec; /* Light pink for mods */
+        background: #fce4ec;
         border-radius: 8px;
         padding: 10px;
         margin-bottom: 20px;
@@ -401,33 +369,152 @@
         font-weight: bold;
         color: white;
       }
-      .mod-tag.no {
-        background: #d32f2f;
+      .mod-tag.no { background: #d32f2f; }
+      .mod-tag.add { background: #2e7d32; }
+
+      /* =========================================
+         6. Cart & Checkout Components
+         ========================================= */
+      /* Bottom Bar */
+      .bottom-cart-bar {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 440px; 
+        background: #2d3436; /* Premium Dark */
+        color: white;
+        z-index: 1050;
+        border-radius: 100px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+        display: none; /* Flex when visible */
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 8px 8px 24px;
+        cursor: pointer;
+        transition: transform 0.2s, background 0.2s;
       }
-      .mod-tag.add {
-        background: #2e7d32;
+      .bottom-cart-bar:active {
+        transform: translateX(-50%) scale(0.98);
+        background: #212529;
+      }
+      .cart-left-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .cart-icon-box {
+        position: relative;
+        font-size: 1.4rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cart-badge {
+        position: absolute;
+        top: -6px;
+        right: -8px;
+        background: var(--accent-color);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: bold;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        border: 2px solid #2d3436;
+      }
+      .cart-total-price {
+        font-size: 1.25rem;
+        font-weight: 800;
+        font-family: var(--font-main);
+        letter-spacing: 0.02em;
+      }
+      .btn-checkout-action {
+        background: var(--brand-color);
+        color: white;
+        font-weight: 800;
+        border: none;
+        border-radius: 50px;
+        padding: 14px 28px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+        transition: transform 0.2s, background 0.2s;
+      }
+      .btn-checkout-action:active {
+        transform: scale(0.95);
+        background: #f57c00;
       }
 
-      /* Cart List */
+      /* Cart Item in Modal */
       .cart-item {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
+        background: white;
+        border-radius: var(--radius-md);
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: var(--shadow-card);
+        border: none;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        transition: transform 0.2s;
       }
+      .cart-item:active { transform: scale(0.98); }
       .cart-item-details h5 {
-        font-size: 1rem;
-        margin: 0;
-        font-weight: bold;
+        font-size: 1.05rem;
+        margin: 0 0 4px 0;
+        font-weight: 700;
+        color: var(--text-main);
       }
-      .cart-item-mods {
-        font-size: 0.8rem;
-        color: #666;
-        margin-top: 4px;
+      .cart-item-price {
+        font-weight: bold;
+        color: var(--text-main);
+        font-size: 0.95rem;
+      }
+      .cart-item-mods { margin-top: 6px; }
+      .cart-del-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #ffebee;
+        color: #d32f2f;
+        border: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.1rem;
+        transition: background 0.2s;
+      }
+      .cart-del-btn:active { background: #ffcdd2; }
+      
+      .cart-total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 10px 0;
+      }
+      .cart-total-label {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: var(--text-sub);
+      }
+      .cart-total-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-main);
       }
 
-      /* --- Modals (Sheet Style) --- */
+      /* =========================================
+         7. Modals (Custom Styles)
+         ========================================= */
       .modal.bottom-sheet .modal-dialog {
         margin: 0;
         position: fixed;
@@ -437,10 +524,9 @@
         width: 100%;
         max-width: 480px;
       }
-      /* --- Custom Fullscreen Modal for Mobile Width --- */
       .mobile-fullscreen-modal .modal-dialog {
         width: 100%;
-        max-width: 480px; /* Match app-container */
+        max-width: 480px;
         margin: 0 auto;
         height: 100%;
         padding: 0;
@@ -450,36 +536,23 @@
         border-radius: 0;
         border: none;
       }
+      .modal-backdrop.show { opacity: 0.2; }
 
-      /* Adjust backdrop to be less intrusive for "page transition" feel */
-      .modal-backdrop.show {
-        opacity: 0.2;
-      }
     </style>
   </head>
   <body>
     <div id="app-container">
-      <!-- Loading Overlay -->
-      <div
-        id="global-loader"
-        style="
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(255, 255, 255, 0.9);
-          z-index: 9999;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        "
-      >
+      
+      <!-- =========================================
+           Screen 1: Loading
+           ========================================= -->
+      <div id="global-loader">
         <div class="spinner-border text-primary" role="status"></div>
       </div>
 
-      <!-- 1. Login Screen -->
-      <!-- 1. Login Screen -->
+      <!-- =========================================
+           Screen 2: Login
+           ========================================= -->
       <div id="step-login" class="screen">
         <div class="login-hero">
           <p class="text-muted mb-2">南陵祭2026</p>
@@ -494,7 +567,9 @@
         </button>
       </div>
 
-      <!-- 1.5 Notification Screen (New) -->
+      <!-- =========================================
+           Screen 3: Notifications
+           ========================================= -->
       <div id="step-notification" class="screen text-center">
         <div class="mt-5 mb-4">
           <div class="mb-3">
@@ -514,22 +589,18 @@
           <button id="btn-req-notification" class="btn-primary-custom mb-3">
             通知を受け取る
           </button>
-          <button
-            class="btn btn-link text-secondary text-decoration-none"
-            onclick="skipNotification()"
-          >
+          <button class="btn btn-link text-secondary text-decoration-none" onclick="skipNotification()">
             通知を受け取らない
           </button>
         </div>
       </div>
 
-      <!-- 2. Terms Screen -->
+      <!-- =========================================
+           Screen 4: Terms & Agreement
+           ========================================= -->
       <div id="step-terms" class="screen">
         <div class="text-center mt-4">
-          <i
-            class="bi bi-shield-exclamation text-danger"
-            style="font-size: 3rem"
-          ></i>
+          <i class="bi bi-shield-exclamation text-danger" style="font-size: 3rem"></i>
           <h2 class="fw-bold mt-2">利用規約の確認</h2>
           <p class="text-muted small">ご注文の前に必ずご確認ください</p>
         </div>
@@ -549,18 +620,9 @@
         </div>
 
         <div class="mt-auto pb-4">
-          <div
-            class="form-check mb-3 d-flex justify-content-center gap-2 align-items-center"
-          >
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="check-terms"
-              style="transform: scale(1.3)"
-            />
-            <label class="form-check-label fw-bold" for="check-terms"
-              >上記内容を理解し、同意します</label
-            >
+          <div class="form-check mb-3 d-flex justify-content-center gap-2 align-items-center">
+            <input class="form-check-input" type="checkbox" id="check-terms" style="transform: scale(1.3)" />
+            <label class="form-check-label fw-bold" for="check-terms">上記内容を理解し、同意します</label>
           </div>
           <button id="btn-agree-terms" class="btn-primary-custom" disabled>
             同意して次へ
@@ -568,7 +630,9 @@
         </div>
       </div>
 
-      <!-- 3. Store Select Screen -->
+      <!-- =========================================
+           Screen 5: Store Selection
+           ========================================= -->
       <div id="step-stores" class="screen">
         <h2 class="fw-bold mb-4">店舗を選択</h2>
         <div id="store-list">
@@ -576,347 +640,180 @@
         </div>
       </div>
 
-      <!-- 4. Menu Screen (Grid) -->
+      <!-- =========================================
+           Screen 6: Menu (Grid)
+           ========================================= -->
       <div id="step-menu" class="screen" style="padding: 0">
-        <div
-          id="menu-header"
-          class="p-3 bg-white sticky-top shadow-sm d-flex align-items-center justify-content-between"
-        >
+        <div id="menu-header" class="p-3 bg-white sticky-top shadow-sm d-flex align-items-center justify-content-between">
           <h5 class="m-0 fw-bold" id="menu-store-name">Store Name</h5>
-          <button
-            class="btn btn-sm btn-outline-secondary rounded-circle"
-            onclick="backToStores()"
-          >
+          <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="backToStores()">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
-        <div
-          id="menu-grid"
-          class="p-3"
-          style="
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            padding-bottom: 100px;
-          "
-        >
+        <div id="menu-grid" class="p-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding-bottom: 100px;">
           <!-- JS Injected -->
         </div>
       </div>
 
-      <!-- 5. Checkout Screen -->
+      <!-- =========================================
+           Screen 7: Checkout (Confirmation)
+           ========================================= -->
       <div id="step-checkout" class="screen">
         <h2 class="fw-bold mb-4">注文内容の確認</h2>
-
         <div class="card mb-3 shadow-sm border-0">
           <div class="card-body">
             <h6 class="text-muted small">受け取り店舗</h6>
             <h4 class="fw-bold" id="checkout-store-name">Store Name</h4>
           </div>
         </div>
-
         <div class="card mb-3 shadow-sm border-0">
-          <div class="card-header bg-white border-bottom-0 fw-bold">
-            注文商品
-          </div>
+          <div class="card-header bg-white border-bottom-0 fw-bold">注文商品</div>
           <div class="card-body p-0">
             <div id="checkout-items-list" class="list-group list-group-flush">
               <!-- Injected -->
             </div>
           </div>
         </div>
-
-        <div
-          class="d-flex justify-content-between align-items-center mb-4 px-2"
-        >
+        <div class="d-flex justify-content-between align-items-center mb-4 px-2">
           <span class="fw-bold fs-5">合計金額</span>
           <span class="fw-bold fs-2 text-danger" id="checkout-total">¥0</span>
         </div>
-
         <div class="alert alert-danger small" role="alert">
           <i class="bi bi-exclamation-triangle-fill me-1"></i>
           <strong>確定後のキャンセル・返金はできません。</strong><br />
           調理完了通知が届いてから15分以内に受け取りに来てください。
         </div>
+        <button class="btn-primary-custom mb-3" onclick="finalizeOrder()">注文を確定する</button>
+        <button class="btn btn-link text-secondary w-100" onclick="backToMenu()">メニューに戻る</button>
+      </div>
 
-        <button class="btn-primary-custom mb-3" onclick="finalizeOrder()">
-          注文を確定する
-        </button>
-        <button
-          class="btn btn-link text-secondary w-100"
-          onclick="backToMenu()"
-        >
-          メニューに戻る
+      <!-- =========================================
+           Global Components: Bottom Bar
+           ========================================= -->
+      <div id="bottom-bar" class="bottom-cart-bar" onclick="openCart()">
+        <div class="cart-left-section">
+          <div class="cart-icon-box">
+            <i class="bi bi-cart-fill"></i>
+            <span class="cart-badge" id="bar-count-badge">0</span>
+          </div>
+          <span class="cart-total-price" id="bar-total">¥0</span>
+        </div>
+        <button class="btn-checkout-action" onclick="event.stopPropagation(); checkout()">
+          レジへ <i class="bi bi-arrow-right-short" style="font-size: 1.2rem;"></i>
         </button>
       </div>
 
-      <!-- Bottom Cart Bar (Redesigned) -->
-      <div id="bottom-bar" class="bottom-cart-bar">
-        <!-- Left: Cart Info (Open Cart Modal) -->
-        <div class="cart-info-area" onclick="openCart()">
-          <div class="small text-white-50">合計金額</div>
-          <div class="fw-bold fs-4">
-            <span id="bar-total">¥0</span>
-            <span class="fs-6 fw-normal text-white-50 ms-2" id="bar-count-text"
-              >0点</span
-            >
-          </div>
-          <div class="small text-warning">
-            <i class="bi bi-chevron-up me-1"></i>詳細を見る
-          </div>
-        </div>
-
-        <!-- Right: Checkout Button (Go to Checkout) -->
-        <div class="checkout-btn-area">
-          <button class="btn-checkout-action" onclick="checkout()">
-            レジへ進む <i class="bi bi-chevron-right"></i>
-          </button>
-        </div>
-      </div>
-    <!-- Moved App Container End to after modals for scaling support -->
-
-    <!-- Placeholder for Modals (Implemented Later) -->
-    <!-- Customization Modal (Full Screen) -->
-    <div
-      class="modal fade mobile-fullscreen-modal"
-      id="itemModal"
-      tabindex="-1"
-      style="z-index: 1060"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content border-0">
-          <!-- Header -->
-          <div class="modal-header border-0 shadow-sm" style="background: #fff">
-            <button
-              type="button"
-              class="btn btn-link text-dark p-0 me-3"
-              data-bs-dismiss="modal"
-              style="font-size: 1.5rem"
-            >
-              <i class="bi bi-chevron-left"></i>
-            </button>
-            <h5
-              class="modal-title fw-bold flex-grow-1 text-center pe-4"
-              id="modal-item-name"
-            >
-              商品名
-            </h5>
-          </div>
-
-          <!-- Body -->
-          <div
-            class="modal-body p-0"
-            style="background: #f8f9fa; padding-bottom: 120px"
-          >
-            <!-- Product Image Area -->
-            <div class="bg-white text-center py-2 mb-3 shadow-sm">
-              <img
-                id="modal-item-img"
-                src=""
-                style="max-width: 60%; max-height: 200px; object-fit: contain"
-              />
-            </div>
-
-            <!-- Description Area (Simple) -->
-            <div class="px-3 mb-4">
-              <p class="text-muted small" id="modal-item-desc">
-                注文後の調理となります。<br />
-                ※画像はイメージです。
-              </p>
-            </div>
-
-            <!-- Customization Section -->
-            <div class="px-3">
-              <div
-                id="customization-area"
-                class="bg-white p-3 rounded-3 shadow-sm mb-3"
-              >
-                <!-- Header (Collapsible Trigger) -->
-                <div
-                  class="d-flex align-items-center justify-content-between"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#customization-collapse"
-                  aria-expanded="false"
-                  aria-controls="customization-collapse"
-                  style="cursor: pointer"
-                >
-                  <div class="d-flex align-items-center">
-                    <i class="bi bi-gear-fill me-2 text-primary"></i>
-                    <span class="fw-bold">カスタマイズ</span>
-                  </div>
-                  <i class="bi bi-chevron-down text-muted"></i>
-                </div>
-
-                <!-- Collapsible Content -->
-                <div class="collapse mt-3" id="customization-collapse">
-                  <div class="mode-toggle mb-3">
-                    <button
-                      class="mode-btn w-100 py-2"
-                      data-mode="NO"
-                      onclick="setMode('NO')"
-                    >
-                      <i class="bi bi-dash-circle me-1"></i> 抜き
-                    </button>
-                    <button
-                      class="mode-btn w-100 py-2"
-                      data-mode="ADD"
-                      onclick="setMode('ADD')"
-                    >
-                      <i class="bi bi-plus-circle me-1"></i> 追加
-                    </button>
-                  </div>
-
-                  <p class="text-muted small mb-2 ms-1">
-                    <i class="bi bi-info-circle me-1"></i
-                    >先に「抜き」か「追加」を選んでください
-                  </p>
-
-                  <div class="topping-list" id="topping-list">
-                    <!-- Injected Buttons -->
-                  </div>
-
-                  <div
-                    class="active-mods-display mt-3"
-                    id="active-mods-display"
-                    style="display: none"
-                  >
-                    <small class="text-muted d-block mb-1">選択中の変更:</small>
-                    <div id="active-mods-list"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Spacer for Fixed Footer -->
-            <div style="height: 100px"></div>
-          </div>
-
-          <!-- Footer (Fixed Bottom Actions) -->
-          <div
-            class="modal-footer border-top bg-white d-block p-3 fixed-bottom"
-            style="
-              position: sticky;
-              bottom: 0;
-              padding-bottom: max(1rem, env(safe-area-inset-bottom));
-            "
-          >
-            <div class="d-flex justify-content-between align-items-end mb-2">
-              <div>
-                <span class="fs-2 fw-bold" id="modal-item-price">¥0</span>
-              </div>
-
-              <!-- Quantity Selector -->
-              <div
-                class="d-flex align-items-center bg-light rounded-pill px-2 py-1 border"
-              >
-                <button
-                  class="btn btn-sm text-secondary"
-                  onclick="adjustQty(-1)"
-                  style="font-size: 1.2rem; width: 30px"
-                >
-                  -
-                </button>
-                <span class="mx-3 fw-bold fs-5" id="modal-item-qty">1</span>
-                <button
-                  class="btn btn-sm text-primary"
-                  onclick="adjustQty(1)"
-                  style="font-size: 1.2rem; width: 30px"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div class="d-flex gap-2 mt-3">
-              <!-- Back Button (Optional, maybe not needed if header has back) -> Let's match image style with mainly Cart Button -->
-              <button
-                class="btn btn-warning w-100 py-3 rounded-pill fw-bold text-dark shadow-sm"
-                onclick="commitAddToCart()"
-              >
-                カートに追加
+      <!-- =========================================
+           Modals
+           ========================================= -->
+      <!-- Item Details Modal (Fullscreen) -->
+      <div class="modal fade mobile-fullscreen-modal" id="itemModal" tabindex="-1" style="z-index: 1060">
+        <div class="modal-dialog">
+          <div class="modal-content border-0">
+            <div class="modal-header border-0 shadow-sm" style="background: #fff">
+              <button type="button" class="btn btn-link text-dark p-0 me-3" data-bs-dismiss="modal" style="font-size: 1.5rem">
+                <i class="bi bi-chevron-left"></i>
               </button>
+              <h5 class="modal-title fw-bold flex-grow-1 text-center pe-4" id="modal-item-name">商品名</h5>
+            </div>
+            <div class="modal-body p-0" style="background: #f8f9fa; padding-bottom: 120px">
+              <div class="bg-white text-center py-2 mb-3 shadow-sm position-relative" style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                 <div class="img-loader">
+                    <div class="spinner-border text-secondary" role="status"></div>
+                 </div>
+                 <img id="modal-item-img" src="" class="img-fluid" style="max-width: 80%; max-height: 200px; object-fit: contain; opacity: 0; transition: opacity 0.3s;" />
+              </div>
+              <div class="px-3 mb-4">
+                <p class="text-muted small" id="modal-item-desc">
+                  注文後の調理となります。<br />※画像はイメージです。
+                </p>
+              </div>
+              <div class="px-3">
+                <div id="customization-area" class="bg-white p-3 rounded-3 shadow-sm mb-3">
+                  <div class="d-flex align-items-center justify-content-between" data-bs-toggle="collapse" data-bs-target="#customization-collapse" aria-expanded="false" aria-controls="customization-collapse" style="cursor: pointer">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-gear-fill me-2 text-primary"></i>
+                      <span class="fw-bold">カスタマイズ</span>
+                    </div>
+                    <i class="bi bi-chevron-down text-muted"></i>
+                  </div>
+                  <div class="collapse mt-3" id="customization-collapse">
+                    <div class="mode-toggle mb-3">
+                      <button class="mode-btn w-100 py-2" data-mode="NO" onclick="setMode('NO')"><i class="bi bi-dash-circle me-1"></i> 抜き</button>
+                      <button class="mode-btn w-100 py-2" data-mode="ADD" onclick="setMode('ADD')"><i class="bi bi-plus-circle me-1"></i> 追加</button>
+                    </div>
+                    <p class="text-muted small mb-2 ms-1"><i class="bi bi-info-circle me-1"></i>先に「抜き」か「追加」を選んでください</p>
+                    <div class="topping-list" id="topping-list"></div>
+                    <div class="active-mods-display mt-3" id="active-mods-display" style="display: none">
+                      <small class="text-muted d-block mb-1">選択中の変更:</small>
+                      <div id="active-mods-list"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="height: 100px"></div>
+            </div>
+            <div class="modal-footer border-top bg-white d-block p-3 fixed-bottom" style="position: sticky; bottom: 0; padding-bottom: max(1rem, env(safe-area-inset-bottom));">
+              <div class="d-flex justify-content-between align-items-end mb-2">
+                <div><span class="fs-2 fw-bold" id="modal-item-price">¥0</span></div>
+                <div class="d-flex align-items-center bg-light rounded-pill px-2 py-1 border">
+                  <button class="btn btn-sm text-secondary" onclick="adjustQty(-1)" style="font-size: 1.2rem; width: 30px">-</button>
+                  <span class="mx-3 fw-bold fs-5" id="modal-item-qty">1</span>
+                  <button class="btn btn-sm text-primary" onclick="adjustQty(1)" style="font-size: 1.2rem; width: 30px">+</button>
+                </div>
+              </div>
+              <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-warning w-100 py-3 rounded-pill fw-bold text-dark shadow-sm" onclick="commitAddToCart()">カートに追加</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Cart Modal -->
-    <div class="modal fade bottom-sheet" id="cartModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title fw-bold">カート</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body p-0">
-            <div id="cart-list">
-              <!-- Cart Items -->
+      <!-- Cart Modal (Bottom Sheet) -->
+      <div class="modal fade bottom-sheet" id="cartModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-bold">カート</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div
-              class="p-3 bg-light d-flex justify-content-between align-items-center"
-            >
-              <span class="fw-bold">合計</span>
-              <span class="display-6 fw-bold text-danger" id="cart-total-modal"
-                >¥0</span
-              >
+            <div class="modal-body p-3" style="background: var(--bg-color)">
+              <div id="cart-list"></div>
+              <div class="cart-total-row mt-4 px-2">
+                <span class="cart-total-label">合計金額</span>
+                <span class="cart-total-value" id="cart-total-modal">¥0</span>
+              </div>
             </div>
-          </div>
-          <div class="modal-footer d-flex gap-2">
-            <button
-              class="btn btn-outline-secondary flex-fill py-3 rounded-pill fw-bold"
-              onclick="clearCart()"
-            >
-              全削除
-            </button>
-            <button
-              class="btn btn-primary flex-fill py-3 rounded-pill fw-bold shadow"
-              onclick="checkout()"
-            >
-              注文を確定する
-            </button>
+            <div class="modal-footer d-block border-top-0 p-3 pt-0" style="background: var(--bg-color)">
+               <button class="btn-primary-custom" style="background: var(--brand-color); margin-bottom: 10px;" onclick="checkout()">
+                  注文を確定する <i class="bi bi-chevron-right ms-1"></i>
+               </button>
+               <button class="btn w-100 text-muted small" style="font-size: 0.9rem;" onclick="clearCart()">
+                  カートを空にする
+               </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      
+    </div><!-- End App Container -->
 
-    <!-- End App Container (Moved here) -->
-    </div>
-
-    <!-- Scripts -->
+    <!-- =========================================
+         Scripts
+         ========================================= -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module">
+      /* 1. Firebase Imports */
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-      import {
-        getAuth,
-        GoogleAuthProvider,
-        signInWithPopup,
-        onAuthStateChanged,
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-      import {
-        getFirestore,
-        collection,
-        getDocs,
-        doc,
-        getDoc,
-        setDoc,
-        serverTimestamp,
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-      import {
-        getMessaging,
-        getToken,
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging.js";
-      import {
-        getStorage,
-        ref as sRef,
-        getDownloadURL,
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
+      import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+      import { getFirestore, collection, getDocs, doc, getDoc, setDoc, serverTimestamp, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+      import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging.js";
+      import { getStorage, ref as sRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
+      import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+      import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js";
 
-      // Firebase Config
+      /* 2. Configuration */
       const firebaseConfig = {
         apiKey: "AIzaSyA-Ijkbo-9rgrNKbDlRJ-rQVYdSXR_a9Do",
         authDomain: "nanryosai-2026-a4091.firebaseapp.com",
@@ -925,29 +822,17 @@
         messagingSenderId: "93228414556",
         appId: "1:93228414556:web:f64f90c13849fae9049899",
       };
-      const VAPID_KEY =
-        "BI-HfOk34KQVIoJK_8KnKplz3l31I9VLWOJKF7mHBARF-XmgVjpRSyVoSfSnoVZDS7orz-OO8yq-S32STZU30Po";
+      const VAPID_KEY = "BI-HfOk34KQVIoJK_8KnKplz3l31I9VLWOJKF7mHBARF-XmgVjpRSyVoSfSnoVZDS7orz-OO8yq-S32STZU30Po";
 
+      // Initialize Services
       const app = initializeApp(firebaseConfig);
-
-      // Initialize App Check
-      import {
-        initializeAppCheck,
-        ReCaptchaEnterpriseProvider,
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js";
-
-      // Allow App Check debug token for localhost
-      if (
-        location.hostname === "localhost" ||
-        location.hostname === "127.0.0.1"
-      ) {
+      
+      // App Check (Localhost Debug)
+      if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
         self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
       }
-
       const appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaEnterpriseProvider(
-          "6LdVI4sqAAAAABsFgjK80A2MAiCg7X9K7uJ-gYQ6"
-        ),
+        provider: new ReCaptchaEnterpriseProvider("6LdVI4sqAAAAABsFgjK80A2MAiCg7X9K7uJ-gYQ6"),
         isTokenAutoRefreshEnabled: true,
       });
 
@@ -955,89 +840,66 @@
       const db = getFirestore(app);
       const messaging = getMessaging(app);
       const storage = getStorage(app);
-      import {
-        getFunctions,
-        httpsCallable,
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
-      import {
-        writeBatch,
-        query,
-        where,
-      } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
       const functions = getFunctions(app, "asia-northeast1");
 
-      // --- State ---
+      /* 3. Global State */
       let currentUser = null;
       let currentStoreId = null;
       let products = [];
       let cart = [];
-
-      // Editing State
+      
+      // Modal State
       let selectingProduct = null;
       let selectingQty = 1;
       let currentMode = null;
       let currentMods = [];
 
-      // --- Modals --- (Bootstrap)
+      // Bootstrap Modals
       let itemModal, cartModal;
 
-      // --- DOM Elements ---
+      // DOM Elements
       const loader = document.getElementById("global-loader");
 
-      // --- Initialization ---
+      /* 4. Core Lifecycle & Auth */
       function init() {
         onAuthStateChanged(auth, (user) => {
           currentUser = user;
           if (user) {
-            // Logged in
             checkFlow();
           } else {
-            // Not logged in
             showScreen("step-login");
             loader.style.display = "none";
           }
         });
       }
 
-      // --- Flow Control ---
       async function checkFlow() {
         // Notification Check
         if (Notification.permission === "default") {
           showScreen("step-notification");
         } else {
-          // Already granted or denied, proceed to Terms
-          if (Notification.permission === "granted") {
-            saveToken(); // Ensure token is up to date
-          }
+          // Grant or Deny -> Terms
+          if (Notification.permission === "granted") await saveToken();
           showScreen("step-terms");
         }
         loader.style.display = "none";
       }
 
-      window.skipNotification = () => {
-        showScreen("step-terms");
-      };
-
-      // --- Action Handlers ---
+      // Handlers
       document.getElementById("btn-login").onclick = async () => {
-        try {
-          await signInWithPopup(auth, new GoogleAuthProvider());
-        } catch (e) {
-          alert("ログインエラー: " + e.message);
-        }
+        try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
+        catch (e) { alert("ログインエラー: " + e.message); }
       };
 
       document.getElementById("btn-req-notification").onclick = async () => {
         try {
           const p = await Notification.requestPermission();
-          if (p === "granted") {
-            await saveToken();
-          }
-        } catch (e) {
-          console.warn(e);
-        }
+          if (p === "granted") await saveToken();
+        } catch (e) { console.warn(e); }
         showScreen("step-terms");
       };
+      
+      window.skipNotification = () => showScreen("step-terms");
 
       document.getElementById("check-terms").onchange = (e) => {
         document.getElementById("btn-agree-terms").disabled = !e.target.checked;
@@ -1045,7 +907,6 @@
 
       document.getElementById("btn-agree-terms").onclick = async () => {
         loader.style.display = "flex";
-        // Proceed to Store Select
         await loadStores();
         showScreen("step-stores");
         loader.style.display = "none";
@@ -1053,65 +914,45 @@
 
       async function saveToken() {
         try {
-          // 明示的にService Workerを登録 (ローカル/本番の両パスに対応できるよう相対パス指定)
-          // pos/mobile-order.html から見て同じ階層にある sw を指す
-          const swReg = await navigator.serviceWorker.register(
-            "./firebase-messaging-sw.js"
-          );
-
-          const token = await getToken(messaging, {
-            vapidKey: VAPID_KEY,
-            serviceWorkerRegistration: swReg,
-          });
-
+          const swReg = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+          const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
           if (token && currentUser) {
-            await setDoc(
-              doc(db, "users", currentUser.uid),
-              {
-                fcmToken: token,
-                notificationEnabled: true,
-                lastLogin: serverTimestamp(),
-              },
-              { merge: true }
-            );
+            await setDoc(doc(db, "users", currentUser.uid), {
+              fcmToken: token,
+              notificationEnabled: true,
+              lastLogin: serverTimestamp(),
+            }, { merge: true });
           }
-        } catch (e) {
-          console.warn("Token save failed", e);
-        }
+        } catch (e) { console.warn("Token save failed", e); }
       }
 
+      /* 5. Feature: Stores */
       async function loadStores() {
         const list = document.getElementById("store-list");
         list.innerHTML = "";
         try {
           const snap = await getDocs(collection(db, "stores"));
-
           if (snap.empty) {
             list.innerHTML = "<p>店舗が見つかりません</p>";
             return;
           }
-
           snap.forEach((d) => {
             const data = d.data();
-            // 画像取得 (Storage優先)
-            // 今回は簡易的に ../images/{id}.png を使用
             const imgSrc = `../images/${d.id}.png`;
-
             const el = document.createElement("div");
             el.className = "store-card animate__animated animate__fadeInUp";
             el.innerHTML = `
-                    <img src="${imgSrc}" class="store-img" onerror="this.onerror=null;this.src='../images/noimage.png'">
-                    <div class="store-info">
-                       <h3>${data.name}</h3>
-                       <small class="text-muted">${data.teamName || ""}</small>
-                    </div>
-                 `;
+              <img src="${imgSrc}" class="store-img" onerror="this.onerror=null;this.src='../images/noimage.png'">
+              <div class="store-info">
+                 <h3>${data.name}</h3>
+                 <small class="text-muted">${data.teamName || ""}</small>
+              </div>
+            `;
             el.onclick = () => selectStore(d.id, data.name);
             list.appendChild(el);
           });
         } catch (e) {
           list.innerHTML = `<p class="text-danger">読み込み失敗: ${e.message}</p>`;
-          console.error(e);
         }
       }
 
@@ -1128,149 +969,15 @@
         document.getElementById("bottom-bar").style.display = "none";
       };
 
-      function showScreen(id) {
-        document
-          .querySelectorAll(".screen")
-          .forEach((el) => el.classList.remove("active"));
-        document.getElementById(id).classList.add("active");
-
-        // Force hide bottom bar if not menu (Safety check)
-        const bar = document.getElementById("bottom-bar");
-        if (id !== "step-menu") {
-          bar.style.display = "none";
-        }
-
-        window.scrollTo(0, 0);
-      }
-
-      // --- PC Scaling Logic ---
-      function adjustScale() {
-        const app = document.getElementById("app-container");
-        const isMobile = window.innerWidth <= 480;
-        
-        if (isMobile) {
-          app.style.transform = "none";
-          app.style.height = "100vh"; // Revert to fill screen
-          return;
-        }
-
-        // PC View: Scale to fit height
-        const windowH = window.innerHeight;
-        // As a base, we assume a standard mobile height, e.g., 850px, or we can use 100vh of the 'app design'
-        // But since we set #app-container to 100vh, it effectively takes current window height.
-        // Wait, if window height is small, 100vh is small. 
-        // User wants "shrink" -> implies they want to see the whole "virtual mobile screen" even if window is short?
-        // Let's force a base height for the app on PC so it looks like a phone, then scale it.
-        const baseHeight = 844; // iPhone 12 Pro height approx
-        
-        // Temporarily force height to baseHeight for calculation
-        app.style.height = `${baseHeight}px`;
-        
-        const scale = Math.min(1, (windowH - 40) / baseHeight); // 40px padding
-        app.style.transform = `scale(${scale})`;
-      }
-
-      window.addEventListener("resize", adjustScale);
-      window.addEventListener("load", adjustScale);
-
-      // --- Image Helper (Optimized) ---
-      let imageObserver;
-
-      function initLazyLoader() {
-        if ("IntersectionObserver" in window) {
-          imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                const imgEl = entry.target;
-                const product = JSON.parse(imgEl.dataset.product); // Retrieve product data
-                setProductImage(imgEl, product); // Actual load
-                observer.unobserve(imgEl);
-              }
-            });
-          });
-        }
-      }
-
-      function lazyLoadImage(imgEl, product) {
-        if (imageObserver) {
-           imgEl.dataset.product = JSON.stringify(product); // Store needed data
-           imageObserver.observe(imgEl);
-        } else {
-           // Fallback for old browsers
-           setProductImage(imgEl, product);
-        }
-      }
-
-      async function setProductImage(imgEl, product) {
-        // Reset state
-        imgEl.classList.remove("loaded");
-        // Find loader sibling relative to imgEl
-        const parent = imgEl.parentElement;
-        const loader = parent.querySelector(".img-loader");
-        if (loader) loader.style.display = "block";
-
-        // Define load handler
-        imgEl.onload = () => {
-          imgEl.classList.add("loaded");
-          if (loader) loader.style.display = "none";
-        };
-
-        const pathOrUrl = product.imageURL || product.imageUrl;
-
-        if (!pathOrUrl) {
-          imgEl.src = "../images/noimage.png"; 
-          // Even for placeholder, trigger onload to show it
-          return;
-        }
-
-        // Cache Key (Simple Prefix)
-        const CACHE_KEY = `img_cache_${pathOrUrl}`;
-
-        // 1. Check Cache
-        const cachedUrl = sessionStorage.getItem(CACHE_KEY);
-        if (cachedUrl) {
-          imgEl.src = cachedUrl;
-          return;
-        }
-
-        // 2. Load
-        if (pathOrUrl.startsWith("http") || pathOrUrl.startsWith("data:")) {
-          imgEl.src = pathOrUrl;
-        } else {
-          try {
-            const url = await getDownloadURL(sRef(storage, pathOrUrl));
-            imgEl.src = url;
-            try {
-               sessionStorage.setItem(CACHE_KEY, url);
-            } catch(e) {}
-          } catch (e) {
-            console.warn("Storage image load failed:", pathOrUrl, e);
-            imgEl.src = "../images/noimage.png";
-          }
-        }
-
-        imgEl.onerror = () => {
-          imgEl.src = "../images/noimage.png";
-          // Make sure to show placeholder if error
-          imgEl.classList.add("loaded");
-          if (loader) loader.style.display = "none";
-        };
-      }
-
-      // --- Menu Logic ---
+      /* 6. Feature: Menu & Logic */
       window.loadMenu = async (storeId) => {
         const grid = document.getElementById("menu-grid");
         grid.innerHTML = '<div class="spinner-border text-primary"></div>';
         products = [];
-        
-        // Initialize Observer
         initLazyLoader();
 
         try {
-          const q = query(
-            collection(db, "items"),
-            where("storeId", "==", storeId)
-          );
+          const q = query(collection(db, "items"), where("storeId", "==", storeId));
           const snap = await getDocs(q);
           grid.innerHTML = "";
 
@@ -1285,36 +992,27 @@
             if (isSoldOut) el.style.opacity = "0.7";
 
             el.innerHTML = `
-                  <div class="menu-img-box" style="background: #f8f9fa;">
-                     ${
-                       isSoldOut
-                         ? '<div class="sold-out-badge"><span class="sold-out-text">SOLD OUT</span></div>'
-                         : ""
-                     }
-                     <div class="img-loader">
-                       <div class="spinner-border text-secondary" role="status" style="width: 2rem; height: 2rem;"></div>
-                     </div>
-                     <img class="menu-img" id="img-${p.id}">
-                  </div>
-                  <div class="menu-info">
-                     <div class="fw-bold text-truncate">${p.name}</div>
-                     <div class="fw-bold mt-1">¥${p.price}</div>
-                  </div>
-               `;
+              <div class="menu-img-box" style="background: #f8f9fa;">
+                 ${isSoldOut ? '<div class="sold-out-badge"><span class="sold-out-text">SOLD OUT</span></div>' : ""}
+                 <div class="img-loader">
+                   <div class="spinner-border text-secondary" role="status" style="width: 2rem; height: 2rem;"></div>
+                 </div>
+                 <img class="menu-img" id="img-${p.id}">
+              </div>
+              <div class="menu-info">
+                 <div class="fw-bold text-truncate">${p.name}</div>
+                 <div class="fw-bold mt-1">¥${p.price}</div>
+              </div>
+            `;
 
-            // Setup Lazy Load
             const imgEl = el.querySelector(".menu-img");
             lazyLoadImage(imgEl, p);
 
-            el.onclick = () => {
-              if (!isSoldOut) openItemModal(p);
-            };
+            el.onclick = () => { if (!isSoldOut) openItemModal(p); };
             grid.appendChild(el);
           });
 
           if (products.length === 0) grid.innerHTML = "<p>商品がありません</p>";
-
-          // Show bottom bar if cart has items
           updateBottomBar();
         } catch (e) {
           console.error(e);
@@ -1322,7 +1020,7 @@
         }
       };
 
-      // --- Item Detail & Customization ---
+      /* 7. Feature: Item Details (Modal) */
       window.openItemModal = (product) => {
         selectingProduct = product;
         selectingQty = 1;
@@ -1330,56 +1028,44 @@
         currentMods = [];
 
         document.getElementById("modal-item-name").textContent = product.name;
-        document.getElementById(
-          "modal-item-price"
-        ).textContent = `¥${product.price}`;
+        document.getElementById("modal-item-price").textContent = `¥${product.price}`;
         document.getElementById("modal-item-qty").textContent = selectingQty;
 
-        // Set Image
         const imgEl = document.getElementById("modal-item-img");
         setProductImage(imgEl, product);
 
-        // Setup Customization
         renderCustomizationUI();
-
-        // Reset Collapse state
+        
         const collapseEl = document.getElementById("customization-collapse");
-        if (collapseEl) {
-          collapseEl.classList.remove("show");
-        }
+        if (collapseEl) collapseEl.classList.remove("show");
 
-        if (!itemModal)
-          itemModal = new bootstrap.Modal(document.getElementById("itemModal"));
+        if (!itemModal) itemModal = new bootstrap.Modal(document.getElementById("itemModal"));
         itemModal.show();
       };
 
       function renderCustomizationUI() {
         const area = document.getElementById("customization-area");
         const list = document.getElementById("topping-list");
-        // Show area if allowedToppings exist
         const allowed = selectingProduct.allowedToppings || [];
 
         if (allowed.length === 0) {
           area.style.display = "none";
         } else {
           area.style.display = "block";
-          // Buttons
           list.innerHTML = "";
           allowed.forEach((t) => {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "topping-btn";
-            btn.dataset.target = t; // Add dataset for easier selection
+            btn.dataset.target = t; 
             btn.textContent = t;
             btn.onclick = () => toggleMod(t);
             list.appendChild(btn);
           });
           updateModeBtns();
           renderActiveMods();
-          updateToppingBtnStyles(); // Initialize styles
+          updateToppingBtnStyles();
         }
-
-        // Clear previous selection display
         document.getElementById("active-mods-display").style.display = "none";
       }
 
@@ -1387,15 +1073,18 @@
         currentMode = currentMode === mode ? null : mode;
         updateModeBtns();
       };
+      
+      function updateModeBtns() {
+        document.querySelectorAll(".mode-btn").forEach((btn) => {
+          if (btn.dataset.mode === currentMode) btn.classList.add("active");
+          else btn.classList.remove("active");
+        });
+      }
 
       function updateToppingBtnStyles() {
-        const toppingBtns = document.querySelectorAll(
-          "#topping-list .topping-btn"
-        );
-        toppingBtns.forEach((btn) => {
+        document.querySelectorAll("#topping-list .topping-btn").forEach((btn) => {
           const target = btn.dataset.target;
           const mod = currentMods.find((m) => m.target === target);
-
           btn.classList.remove("mod-selected-no", "mod-selected-add");
           if (mod) {
             if (mod.mode === "NO") btn.classList.add("mod-selected-no");
@@ -1404,51 +1093,20 @@
         });
       }
 
-      function updateModeBtns() {
-        document.querySelectorAll(".mode-btn").forEach((btn) => {
-          if (btn.dataset.mode === currentMode) btn.classList.add("active");
-          else btn.classList.remove("active");
-        });
-
-        // Ensure buttons are enabled (removed btn-disabled styling to avoid confusion)
-        const toppingBtns = document.querySelectorAll(
-          "#topping-list .topping-btn"
-        );
-        toppingBtns.forEach((btn) => {
-          btn.disabled = false;
-          btn.classList.remove("btn-disabled");
-        });
-      }
-
       function toggleMod(target) {
         if (!currentMode) {
-          // Provide visual feedback instead of alert
           const modeContainer = document.querySelector(".mode-toggle");
-          modeContainer.classList.remove(
-            "animate__animated",
-            "animate__headShake"
-          );
-          void modeContainer.offsetWidth; // Force reflow
-          modeContainer.classList.add(
-            "animate__animated",
-            "animate__headShake"
-          );
+          modeContainer.classList.remove("animate__animated", "animate__headShake");
+          void modeContainer.offsetWidth; // Reflow
+          modeContainer.classList.add("animate__animated", "animate__headShake");
           return;
         }
-
         const existingIdx = currentMods.findIndex((m) => m.target === target);
-
         if (existingIdx >= 0) {
           const existing = currentMods[existingIdx];
-          // If same mode, toggle OFF (remove)
-          if (existing.mode === currentMode) {
-            currentMods.splice(existingIdx, 1);
-          } else {
-            // If different mode, Overwrite
-            existing.mode = currentMode;
-          }
+          if (existing.mode === currentMode) currentMods.splice(existingIdx, 1);
+          else existing.mode = currentMode;
         } else {
-          // New
           currentMods.push({ mode: currentMode, target: target });
         }
         renderActiveMods();
@@ -1464,26 +1122,24 @@
           span.textContent = `${m.mode} ${m.target}`;
           div.appendChild(span);
         });
+        div.parentElement.style.display = currentMods.length ? "block" : "none";
       }
 
       window.adjustQty = (delta) => {
         selectingQty += delta;
         if (selectingQty < 1) selectingQty = 1;
         document.getElementById("modal-item-qty").textContent = selectingQty;
+        document.getElementById("modal-item-price").textContent = `¥${selectingProduct.price * selectingQty}`;
       };
 
+      /* 8. Feature: Cart Logic */
       window.commitAddToCart = () => {
-        // Add to Cart
-        const sortedNewMods = [...currentMods].sort((a, b) =>
-          (a.mode + a.target).localeCompare(b.mode + b.target)
-        );
+        const sortedNewMods = [...currentMods].sort((a, b) => (a.mode + a.target).localeCompare(b.mode + b.target));
         const newModsStr = JSON.stringify(sortedNewMods);
 
         const existing = cart.find((c) => {
           if (c.productId !== selectingProduct.id) return false;
-          const cMods = [...c.customizations].sort((a, b) =>
-            (a.mode + a.target).localeCompare(b.mode + b.target)
-          );
+          const cMods = [...c.customizations].sort((a, b) => (a.mode + a.target).localeCompare(b.mode + b.target));
           return JSON.stringify(cMods) === newModsStr;
         });
 
@@ -1500,16 +1156,13 @@
             allowedToppings: selectingProduct.allowedToppings || [],
           });
         }
-
         updateBottomBar();
         itemModal.hide();
       };
 
-      // --- Cart Logic ---
       window.openCart = () => {
         renderCartList();
-        if (!cartModal)
-          cartModal = new bootstrap.Modal(document.getElementById("cartModal"));
+        if (!cartModal) cartModal = new bootstrap.Modal(document.getElementById("cartModal"));
         cartModal.show();
       };
 
@@ -1517,31 +1170,28 @@
         const list = document.getElementById("cart-list");
         list.innerHTML = "";
         let total = 0;
-
         cart.forEach((c, idx) => {
           total += c.price * c.quantity;
           const el = document.createElement("div");
-          el.className = "cart-item";
-
-          let modsHtml = "";
-          c.customizations.forEach((m) => {
-            modsHtml += `<span class="badge bg-secondary me-1" style="font-size:0.7rem">${m.mode} ${m.target}</span>`;
-          });
+          el.className = "cart-item animate__animated animate__fadeInUp";
+          el.style.animationDelay = `${idx * 0.05}s`;
+          
+          let modsHtml = c.customizations.map(m => 
+            `<span class="badge bg-secondary me-1" style="font-size:0.75rem; font-weight:normal; opacity:0.8;">${m.mode} ${m.target}</span>`
+          ).join("");
 
           el.innerHTML = `
-               <div class="cart-item-details">
-                  <h5>${c.name}</h5>
-                  <div class="text-muted">¥${c.price} x ${c.quantity}</div>
-                  <div class="cart-item-mods">${modsHtml}</div>
-               </div>
-               <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${idx})">削除</button>
-            `;
+             <div class="cart-item-details">
+                <h5>${c.name}</h5>
+                <div class="cart-item-price">¥${c.price} x ${c.quantity}</div>
+                <div class="cart-item-mods">${modsHtml}</div>
+             </div>
+             <button class="cart-del-btn" onclick="removeFromCart(${idx})"><i class="bi bi-trash"></i></button>
+          `;
           list.appendChild(el);
         });
-
         document.getElementById("cart-total-modal").textContent = `¥${total}`;
-        if (cart.length === 0)
-          list.innerHTML = "<p class='p-3 text-center'>カートは空です</p>";
+        if (cart.length === 0) list.innerHTML = "<p class='p-4 text-center text-muted'>カートは空です</p>";
       }
 
       window.removeFromCart = (idx) => {
@@ -1560,115 +1210,59 @@
         }
       };
 
-      function updateBottomBar() {
-        const bar = document.getElementById("bottom-bar");
-        // Strictly check if we are on the menu screen
-        const menuScreen = document.getElementById("step-menu");
-        // Note: checking classList.contains("active") might be flaky if called during transition
-        // So we also check if the active screen is indeed step-menu
-        const activeScreen = document.querySelector(".screen.active");
-
-        if (!activeScreen || activeScreen.id !== "step-menu") {
-          bar.style.display = "none";
-          return;
-        }
-
-        if (cart.length === 0) {
-          bar.style.display = "none";
-        } else {
-          bar.style.display = "flex";
-          let total = 0;
-          let count = 0;
-          cart.forEach((c) => {
-            total += c.price * c.quantity;
-            count += c.quantity;
-          });
-          document.getElementById("bar-total").textContent = `¥${total}`;
-          const countEl = document.getElementById("bar-count-text");
-          if (countEl) countEl.textContent = `${count}点`;
-        }
-      }
-
-      // --- Checkout ---
+      /* 9. Feature: Checkout */
       window.backToMenu = () => {
         showScreen("step-menu");
-        // Restore bottom bar
         updateBottomBar();
       };
 
       window.checkout = () => {
-        // Close Cart Modal
         if (cartModal) cartModal.hide();
-
-        // Populate Checkout Screen
-        const storeName =
-          document.getElementById("menu-store-name").textContent;
-        document.getElementById("checkout-store-name").textContent = storeName;
-
+        
+        document.getElementById("checkout-store-name").textContent = document.getElementById("menu-store-name").textContent;
         const list = document.getElementById("checkout-items-list");
         list.innerHTML = "";
         let total = 0;
 
         cart.forEach((c) => {
           total += c.price * c.quantity;
-          let modsHtml = "";
-          c.customizations.forEach((m) => {
-            // Color code the customization tags
-            const colorClass =
-              m.mode === "NO"
-                ? "text-danger border-danger"
-                : "text-success border-success";
-            modsHtml += `<span class="badge bg-white border ${colorClass} me-1 mb-1" style="font-size:0.8rem">${m.mode} ${m.target}</span>`;
-          });
+          let modsHtml = c.customizations.map(m => {
+            const colorClass = m.mode === "NO" ? "text-danger border-danger" : "text-success border-success";
+            return `<span class="badge bg-white border ${colorClass} me-1 mb-1" style="font-size:0.8rem">${m.mode} ${m.target}</span>`;
+          }).join("");
 
           const div = document.createElement("div");
-          div.className =
-            "list-group-item p-3 border-0 border-bottom d-flex justify-content-between align-items-start";
+          div.className = "list-group-item p-3 border-0 border-bottom d-flex justify-content-between align-items-start";
           div.innerHTML = `
-                <div class="me-3" style="flex: 1;">
-                  <div class="fw-bold mb-2" style="font-size: 1.15rem;">${
-                    c.name
-                  }</div>
-                  <div class="mb-2 d-flex flex-wrap">${
-                    modsHtml || '<span class="text-muted small">変更なし</span>'
-                  }</div>
-                  <div class="text-muted small d-flex align-items-center">
-                    <span class="me-2">単価 ¥${c.price}</span>
-                    <span class="badge bg-light text-dark border">x${
-                      c.quantity
-                    }</span>
-                  </div>
-                </div>
-                <div class="fw-bold fs-5 text-nowrap mt-1">¥${
-                  c.price * c.quantity
-                }</div>
-             `;
+            <div class="me-3" style="flex: 1;">
+              <div class="fw-bold mb-2" style="font-size: 1.15rem;">${c.name}</div>
+              <div class="mb-2 d-flex flex-wrap">${modsHtml || '<span class="text-muted small">変更なし</span>'}</div>
+              <div class="text-muted small d-flex align-items-center">
+                <span class="me-2">単価 ¥${c.price}</span>
+                <span class="badge bg-light text-dark border">x${c.quantity}</span>
+              </div>
+            </div>
+            <div class="fw-bold fs-5 text-nowrap mt-1">¥${c.price * c.quantity}</div>
+          `;
           list.appendChild(div);
         });
 
         document.getElementById("checkout-total").textContent = `¥${total}`;
-
-        // Hide bottom bar for this screen
         document.getElementById("bottom-bar").style.display = "none";
         showScreen("step-checkout");
       };
 
       window.finalizeOrder = async () => {
-        // Double Check (Browser Alert)
         if (!confirm("本当に注文を確定してよろしいですか？")) return;
-
         loader.style.display = "flex";
         try {
-          // 1. Sync Cart again just to be sure
           const cartRef = collection(db, `users/${currentUser.uid}/cart`);
           const batch = writeBatch(db);
-
           const oldSnap = await getDocs(cartRef);
           oldSnap.forEach((d) => batch.delete(d.ref));
 
           cart.forEach((c) => {
-            const ref = doc(cartRef);
-            batch.set(ref, {
+            batch.set(doc(cartRef), {
               productId: c.productId,
               quantity: c.quantity,
               customizations: c.customizations,
@@ -1677,16 +1271,10 @@
           });
           await batch.commit();
 
-          // 2. Call Function
-          const createOnlineOrder = httpsCallable(
-            functions,
-            "createOnlineOrder"
-          );
+          const createOnlineOrder = httpsCallable(functions, "createOnlineOrder");
           const result = await createOnlineOrder({ storeId: currentStoreId });
-          if (!result.data.success)
-            throw new Error(result.data.error || "Order Failed");
+          if (!result.data.success) throw new Error(result.data.error || "Order Failed");
 
-          // 3. Redirect
           window.location.href = `status.html?orderId=${result.data.orderId}`;
         } catch (e) {
           console.error(e);
@@ -1694,6 +1282,112 @@
           loader.style.display = "none";
         }
       };
+
+      /* 10. Utils & Helpers */
+      function showScreen(id) {
+        document.querySelectorAll(".screen").forEach((el) => el.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+        const bar = document.getElementById("bottom-bar");
+        if (id !== "step-menu") bar.style.display = "none";
+        window.scrollTo(0, 0);
+      }
+
+      function updateBottomBar() {
+        const bar = document.getElementById("bottom-bar");
+        const activeScreen = document.querySelector(".screen.active");
+        if (!activeScreen || activeScreen.id !== "step-menu" || cart.length === 0) {
+          bar.style.display = "none";
+        } else {
+          bar.style.display = "flex";
+          let total = 0;
+          let count = 0;
+          cart.forEach((c) => { total += c.price * c.quantity; count += c.quantity; });
+          document.getElementById("bar-total").textContent = `¥${total}`;
+          const badge = document.getElementById("bar-count-badge");
+          if (badge) badge.textContent = count;
+        }
+      }
+
+      // Scaling
+      function adjustScale() {
+        const app = document.getElementById("app-container");
+        if (window.innerWidth <= 480) {
+          app.style.transform = "none";
+          app.style.height = "100vh";
+          return;
+        }
+        const baseHeight = 844; 
+        app.style.height = `${baseHeight}px`;
+        const scale = Math.min(1, (window.innerHeight - 40) / baseHeight);
+        app.style.transform = `scale(${scale})`;
+      }
+      window.addEventListener("resize", adjustScale);
+      window.addEventListener("load", adjustScale);
+
+      // Image Handling
+      let imageObserver;
+      function initLazyLoader() {
+        if ("IntersectionObserver" in window) {
+          imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const imgEl = entry.target;
+                const product = JSON.parse(imgEl.dataset.product);
+                setProductImage(imgEl, product);
+                observer.unobserve(imgEl);
+              }
+            });
+          });
+        }
+      }
+
+      function lazyLoadImage(imgEl, product) {
+        if (imageObserver) {
+           imgEl.dataset.product = JSON.stringify(product);
+           imageObserver.observe(imgEl);
+        } else {
+           setProductImage(imgEl, product);
+        }
+      }
+
+      async function setProductImage(imgEl, product) {
+        imgEl.classList.remove("loaded");
+        const loader = imgEl.parentElement.querySelector(".img-loader");
+        if (loader) loader.style.display = "block";
+
+        imgEl.onload = () => {
+          imgEl.classList.add("loaded");
+          if (loader) loader.style.display = "none";
+        };
+
+        const pathOrUrl = product.imageURL || product.imageUrl;
+        if (!pathOrUrl) {
+          imgEl.src = "../images/noimage.png";
+          return;
+        }
+
+        const CACHE_KEY = `img_cache_${pathOrUrl}`;
+        const cachedUrl = sessionStorage.getItem(CACHE_KEY);
+        if (cachedUrl) { imgEl.src = cachedUrl; return; }
+
+        if (pathOrUrl.startsWith("http") || pathOrUrl.startsWith("data:")) {
+          imgEl.src = pathOrUrl;
+        } else {
+          try {
+            const url = await getDownloadURL(sRef(storage, pathOrUrl));
+            imgEl.src = url;
+            try { sessionStorage.setItem(CACHE_KEY, url); } catch(e) {}
+          } catch (e) {
+            console.warn("Storage image load failed:", pathOrUrl, e);
+            imgEl.src = "../images/noimage.png";
+          }
+        }
+        imgEl.onerror = () => {
+          imgEl.src = "../images/noimage.png";
+          imgEl.classList.add("loaded");
+          if (loader) loader.style.display = "none";
+        };
+      }
 
       init();
     </script>
